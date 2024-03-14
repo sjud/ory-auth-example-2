@@ -1,5 +1,5 @@
 [package]
-name = "user_app_e2e"
+name = "e2e"
 version = "0.1.0"
 edition = "2021"
 
@@ -15,6 +15,7 @@ url = "2.4.0"
 reqwest = "0.11.25"
 tracing = "0.1.40"
 ids = {path="../ids"}
+
 [[test]]
 name = "app_suite"
 harness = false    # Allow Cucumber to print output instead of libtest

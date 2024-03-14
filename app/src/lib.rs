@@ -1,3 +1,5 @@
+#![feature(box_patterns)]
+
 use crate::error_template::{AppError, ErrorTemplate};
 
 use leptos::*;
@@ -5,8 +7,8 @@ use leptos_meta::*;
 use leptos_router::*;
 
 pub mod error_template;
-pub mod kratos_html;
-
+pub mod auth;
+use auth::*;
 #[component]
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
@@ -27,6 +29,8 @@ pub fn App() -> impl IntoView {
             <main>
                 <Routes>
                     <Route path="" view=HomePage/>
+                    <Route path="register" view=RegistrationPage/>
+                    <Route path="check_email_for_verification" view=||todo!()/>
                 </Routes>
             </main>
         </Router>
@@ -36,12 +40,9 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
-    // Creates a reactive value to update the button
-    let (count, set_count) = create_signal(0);
-    let on_click = move |_| set_count.update(|count| *count += 1);
 
     view! {
         <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_click>"Click Me: " {count}</button>
+        <a href="/register">Register</a>
     }
 }

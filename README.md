@@ -75,3 +75,5 @@ The `ids` crate includes a list of static strings that we'll use in our fantocci
 
 ## How this project's git workflow works
 
+## Thoughts, Feedback, Criticism, Comments?
+Send me any of the above, I'm @sjud on leptos discord. I'm always looking to improve and make these examples more helpful for the community. So please let me know how I can do that. Thanks!

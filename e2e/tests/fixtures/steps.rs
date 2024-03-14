@@ -11,3 +11,9 @@ pub async fn i_pass(_world:&mut AppWorld) -> Result<()> {
     tracing::info!("I pass and I trace.");
     Ok(())
 }
+
+#[given("I am on the homepage")]
+pub async fn navigate_to_homepage(world:&mut AppWorld) -> Result<()> {
+    world.goto_path("/").await?;
+    Ok(())
+}
