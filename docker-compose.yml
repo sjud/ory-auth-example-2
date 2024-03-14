@@ -1,0 +1,45 @@
+version: '3.7'
+services:
+  mailcrab:
+    image: marlonb/mailcrab:latest
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+    networks:
+      - mynetwork
+
+  kratos:
+    image: oryd/kratos:v1.1.0
+    command: serve --config /etc/config/kratos/kratos.yaml --watch-courier
+    volumes:
+      - "./kratos:/etc/config/kratos"
+    ports:
+      - "4433:4433"
+      - "4434:4434"
+    networks:
+      - mynetwork
+
+  ketos:
+    image: oryd/keto:v0.12.0
+    command: serve --config /etc/config/keto/keto.yaml
+    volumes:
+      - "./keto:/etc/config/keto"
+    ports:
+      - "4466:4466"
+    networks:
+      - mynetwork
+
+  selenium:
+    #pinned to a recent (but arbitrary) historical version because ":latest" didn't work...
+    image: selenium/standalone-chrome:120.0.6099.62-chromedriver-120.0.6099.62-grid-4.16.0-20231206
+    ports:
+      - "4444:4444"
+      - "5900:5900"
+      - "7900:7900"
+    shm_size: 2g
+    networks:
+      - mynetwork
+  
+networks:
+  mynetwork:
+    driver: bridge
