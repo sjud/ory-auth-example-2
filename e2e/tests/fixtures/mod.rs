@@ -35,6 +35,7 @@ impl AppWorld {
         })
     }
 
+
     pub async fn find(&self, id:&'static str) -> Result<Element> {
         Ok(self.client
             .find(Locator::Id(id))

@@ -43,6 +43,6 @@ fn HomePage() -> impl IntoView {
 
     view! {
         <h1>"Welcome to Leptos!"</h1>
-        <a href="/register">Register</a>
+        <a href="/register" id=ids::REGISTER_BUTTON_ID>Register</a>
     }
 }

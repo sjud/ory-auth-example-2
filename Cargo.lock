@@ -132,6 +132,7 @@ dependencies = [
  "axum-extra",
  "cfg-if",
  "http 1.1.0",
+ "ids",
  "leptos",
  "leptos_axum",
  "leptos_meta",

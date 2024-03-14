@@ -20,6 +20,7 @@ cfg-if = "1"
 console_error_panic_hook = "0.1.7"
 console_log = "1"
 http = "1"
+ids = {path="./ids"}
 # this goes to this personal branch because of https://github.com/ory/sdk/issues/325#issuecomment-1960834676
 ory-kratos-client = {git="https://github.com/sjud/kratos-client-rust"}
 ory-keto-client = {version = "0.11.0-alpha.0"}

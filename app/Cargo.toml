@@ -24,6 +24,7 @@ ory-keto-client.workspace = true
 reqwest  = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
+ids.workspace = true
 [features]
 default = []
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
