@@ -7,3 +7,13 @@ pkg
 **/*.rs.bk
 
 e2e/target
+e2e/chromedriver_screenshot.png
+
+localhost+2-key.pem
+localhost+2.pem
+host.docker.internal+3-key.pem
+host.docker.internal+3.pem
+key.pem
+cert.pem
+rootCA.pem
+

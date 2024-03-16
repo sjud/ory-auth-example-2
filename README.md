@@ -73,6 +73,11 @@ We use Gherkin feature files to describe the behavior of the application. We use
 <br>
 The `ids` crate includes a list of static strings that we'll use in our fantoccini lookups and our frontend to make our testing as smooth as possible. There are other ways to do this, such as find by text, which would find the "Sign Up" text and click it etc. But for the purposes of testing the functionality of our integrations, not merely our expectations with regards to their presentation,and while making the most of Gherkin as a way to actually drive developer velocity/confidence; we're going to be using ids and static URL's which will be consistent across our tests, frontend, server etc. All of which will be in the ids crate.
 
+## How to use mkcert to get a locally signed certificate (and why)
+We need to use https because we are sending cookies with the `Secure;` flag, cookies with the Secure flag can't be used in Chrome
+unless delivered over https. Since we're using chromedriver for e2e testing let's use mkcert to create a cert that will allow 
+https://docker.internal.host:3000/ to be a valid url.
+
 ## How this project's git workflow works
 
 ## Thoughts, Feedback, Criticism, Comments?

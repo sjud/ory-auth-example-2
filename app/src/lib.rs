@@ -29,8 +29,8 @@ pub fn App() -> impl IntoView {
             <main>
                 <Routes>
                     <Route path="" view=HomePage/>
-                    <Route path="register" view=RegistrationPage/>
-                    <Route path="check_email_for_verification" view=||todo!()/>
+                    <Route path=ids::REGISTER_ROUTE view=RegistrationPage/>
+                    <Route path=ids::VERIFY_EMAIL_ROUTE view=||view!{<div id=ids::VERIFY_EMAIL_DIV_ID>"Check Email for Verification"</div>}/>
                 </Routes>
             </main>
         </Router>

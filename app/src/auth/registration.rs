@@ -6,6 +6,8 @@ use ory_kratos_client::models::UiContainer;
 use ory_kratos_client::models::UiText;
 #[cfg(feature = "ssr")]
 use tracing::debug;
+#[cfg(feature="hydrate")]
+use wasm_bindgen::JsCast;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewableRegistrationFlow(RegistrationFlow);
@@ -177,7 +179,7 @@ pub fn RegistrationPage() -> impl IntoView {
         // we'll render the fallback when the user hits the page for the first time
       <Suspense fallback=||view!{Loading Login Details}>
         // if we get any errors, from either server functions we've merged we'll render them here.
-        <ErrorBoundary fallback=|errors|format!("ERRORS: {:?}",errors.get_untracked()).into_view()>
+        <ErrorBoundary fallback=|errors|view!{<ErrorTemplate errors/>}>
         {
           move ||
           // this is the resource XOR the results of the register action.
@@ -186,13 +188,14 @@ pub fn RegistrationPage() -> impl IntoView {
                     // TODO add Oauth using the flow args (see type docs)
                     Ok(Some(ViewableRegistrationFlow(RegistrationFlow{ui:box UiContainer{nodes,action,messages,..},..}))) => {
                             let form_inner_html = nodes.into_iter().map(|node|kratos_html(node,body)).collect_view();
-                            // tells our intermediary server function where to pass on the data to.
-                            body.update(|map|{_=map.insert(String::from("action"),action);});
+                            body.update(move|map|{_=map.insert(String::from("action"),action);});
 
                             view!{
-                                <form on:submit=move|e|{
+                                <form 
+                                
+                                on:submit=move|e|{
                                     e.prevent_default();
-                                    register.dispatch(Register{body:body.get()});
+                                    register.dispatch(Register{body:body.get_untracked()});
                                 }
                                 id=ids::REGISTRATION_FORM_ID
                                 >

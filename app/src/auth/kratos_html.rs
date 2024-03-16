@@ -68,12 +68,13 @@ pub fn kratos_html(node: UiNode, body: RwSignal<HashMap<String, String>>) -> imp
                 }
                 .into_view()
             } else if _type != UiNodeAttributesTypeEnum::Hidden {
-
+                let id = ids::match_name_to_id(name.clone());
+                
                 view! {
-                  <fieldset>
                     <label>
                        <span>{&label}</span>
                       <input name=name
+                      id=id
                       // we use replace here and in autocomplete because serde_json adds double quotes for some reason?
                       type=_type_str.replace("\"","")
                       value=move||body.get().get(&name_clone_2).cloned().unwrap_or_default()
@@ -86,7 +87,6 @@ pub fn kratos_html(node: UiNode, body: RwSignal<HashMap<String, String>>) -> imp
                       }
                         />
                     </label>
-                  </fieldset>
                 }
                 .into_view()
             } else {

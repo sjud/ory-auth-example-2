@@ -3,7 +3,8 @@ use axum::Router;
 use fileserv::file_and_error_handler;
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
-
+use axum_server::tls_rustls::RustlsConfig;
+use std::path::PathBuf;
 pub mod fileserv;
 
 #[tokio::main]
@@ -12,6 +13,13 @@ async fn main() {
         .with_max_level(tracing::Level::DEBUG)
         .compact()
         .init();
+
+    let config = RustlsConfig::from_pem_file(
+            PathBuf::from("./cert.pem"),
+            PathBuf::from("./key.pem")
+        )
+        .await
+        .unwrap();
     
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:
@@ -31,9 +39,11 @@ async fn main() {
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
-    println!("listening on http://{}", &addr);
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-    axum::serve(listener, app.into_make_service())
+    // axum_server::bind_rustl is a wrapper around that
+    // in real use case we'd want to also run a server that redirects http requests with https to the https server
+    println!("listening on https://{}", &addr);
+    axum_server::bind_rustls(addr,config)
+        .serve(app.into_make_service())
         .await
         .unwrap();
 }

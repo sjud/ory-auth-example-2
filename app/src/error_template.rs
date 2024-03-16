@@ -2,7 +2,8 @@ use cfg_if::cfg_if;
 use http::status::StatusCode;
 use leptos::*;
 use thiserror::Error;
-
+#[cfg(feature="hydrate")]
+use wasm_bindgen::JsCast;
 #[cfg(feature = "ssr")]
 use leptos_axum::ResponseOptions;
 
@@ -27,6 +28,11 @@ pub fn ErrorTemplate(
     #[prop(optional)] outside_errors: Option<Errors>,
     #[prop(optional)] errors: Option<RwSignal<Errors>>,
 ) -> impl IntoView {
+    let basic_err_msg = if let Some(errors_sig) = errors {
+        format!("{:#?}",errors_sig.get_untracked())
+    } else {
+        "No errors produced by signal".to_string()
+    };
     let errors = match outside_errors {
         Some(e) => create_rw_signal(e),
         None => match errors {
@@ -53,6 +59,7 @@ pub fn ErrorTemplate(
         }
     }}
 
+
     view! {
         <h1>{if errors.len() > 1 { "Errors" } else { "Error" }}</h1>
         <For
@@ -66,9 +73,10 @@ pub fn ErrorTemplate(
                 let error_code = error.1.status_code();
                 view! {
                     <h2>{error_code.to_string()}</h2>
-                    <p>"Error: " {error_string}</p>
+                    <p >"Error: " {error_string}</p>
                 }
             }
         />
+        <p id=ids::ERROR_ERROR_ID>{basic_err_msg}</p>
     }
 }
