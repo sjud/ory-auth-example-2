@@ -4,10 +4,12 @@ use std::collections::HashMap;
 use ory_kratos_client::models::RegistrationFlow;
 use ory_kratos_client::models::UiContainer;
 use ory_kratos_client::models::UiText;
+
 #[cfg(feature = "ssr")]
 use tracing::debug;
-#[cfg(feature="hydrate")]
-use wasm_bindgen::JsCast;
+#[cfg(feature = "ssr")]
+use http::StatusCode;
+
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewableRegistrationFlow(RegistrationFlow);
@@ -16,10 +18,22 @@ impl IntoView for ViewableRegistrationFlow {
         format!("{:?}", self).into_view()
     }
 }
-
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum RegistrationResponse{
+    Flow(ViewableRegistrationFlow),
+    Success,
+}
+impl IntoView for RegistrationResponse {
+    fn into_view(self) -> View {
+        match self {
+            Self::Flow(view) => view.into_view(),
+            _ => ().into_view()
+        }
+    }
+}
 #[server]
 #[tracing::instrument]
-pub async fn init_registration() -> Result<ViewableRegistrationFlow, ServerFnError> {
+pub async fn init_registration() -> Result<RegistrationResponse, ServerFnError> {
     let client = reqwest::ClientBuilder::new()
         .cookie_store(true)
         .redirect(reqwest::redirect::Policy::none())
@@ -72,14 +86,20 @@ pub async fn init_registration() -> Result<ViewableRegistrationFlow, ServerFnErr
         axum::http::HeaderValue::from_str(set_cookie)?,
     );
     debug!("{:#?}", flow);
-    Ok(flow)
+    Ok(RegistrationResponse::Flow(flow))
 }
 
 #[tracing::instrument]
 #[server]
 pub async fn register(
     body: HashMap<String, String>,
-) -> Result<Option<ViewableRegistrationFlow>, ServerFnError> {
+) -> Result<RegistrationResponse, ServerFnError> {
+    use ory_kratos_client::models::successful_native_registration::SuccessfulNativeRegistration;
+    use ory_kratos_client::models::generic_error::GenericError;
+    use ory_kratos_client::models::error_browser_location_change_required::ErrorBrowserLocationChangeRequired;
+
+    let pool = leptos_axum::extract::<axum::Extension<sqlx::SqlitePool>>().await?;
+
     let mut body = body;
     let action = body
         .remove("action")
@@ -96,10 +116,12 @@ pub async fn register(
     let client = reqwest::ClientBuilder::new()
         .redirect(reqwest::redirect::Policy::none())
         .build()?;
+    debug!("Sending {action} ");
     let resp = client
         .post(&action)
         .header("x-csrf-token", csrf_token)
         .header("content-type", "application/json")
+        //.header("accept","application/json")
         .header(
             "cookie",
             format!("{}={}", csrf_cookie.name(), csrf_cookie.value()),
@@ -120,27 +142,35 @@ pub async fn register(
             axum::http::HeaderValue::from_str(value.to_str()?)?,
         );
     }
-    match resp.json::<ViewableRegistrationFlow>().await {
-        Ok(flow) => {
-            debug!("{:#?}", flow);
-            Ok(Some(flow))
-        },
-        Err(err) => {
-            let resp = client
-        .post(action)
-        .header("x-csrf-token", csrf_token)
-        .header("content-type", "application/json")
-        .header(
-            "cookie",
-            format!("{}={}", csrf_cookie.name(), csrf_cookie.value()),
-        )
-        .body(serde_json::to_string(&body)?)
-        .send()
-        .await?;     
-            debug!("{:#?}",err);
-            debug!("{:#?}",resp.text().await?);
-            Ok(None)
-        }
+    if resp.status().as_u16() == StatusCode::BAD_REQUEST.as_u16() {
+        Ok(RegistrationResponse::Flow(resp.json::<ViewableRegistrationFlow>().await?))
+    } else if resp.status().as_u16() == StatusCode::OK.as_u16() {
+        // get identity, session, session token
+        let SuccessfulNativeRegistration{
+            continue_with,identity,session,session_token
+        } = resp.json::<SuccessfulNativeRegistration>().await?;
+        let identity_id = identity.id;
+        crate::business_logic::database_calls::create_user(&pool, identity_id).await?;
+        //discard all? what about session_token? I guess we aren't allowing logging in after registration without verification..
+        Ok(RegistrationResponse::Success)
+    } else if resp.status().as_u16() == StatusCode::GONE.as_u16() {
+        let err = resp.json::<GenericError>().await?;
+        let err = format!("{:#?}",err);
+        debug!(err);
+        Err(ServerFnError::new(err))
+    } else if resp.status().as_u16() == StatusCode::UNPROCESSABLE_ENTITY.as_u16() {
+        let err = resp.json::<ErrorBrowserLocationChangeRequired>().await?;
+        let err = format!("{:#?}",err);
+        debug!(err);
+        Err(ServerFnError::new(err))
+    } else if resp.status().as_u16() == StatusCode::TEMPORARY_REDIRECT.as_u16(){
+        let text = format!("{:#?}",resp);
+        Err(ServerFnError::new(text))
+    } else {
+        // this is a status code that isn't covered by the documentation
+        // https://www.ory.sh/docs/reference/api#tag/frontend/operation/updateRegistrationFlow
+        let status_code = resp.status().as_u16();
+        Err(ServerFnError::new(format!("{status_code} is not covered under the ory documentation?")))
     }
 }
 
@@ -153,7 +183,7 @@ pub fn RegistrationPage() -> impl IntoView {
         create_local_resource(|| (), |_| async move { init_registration().await });
     // Is none if user hasn't submitted data.
     let register_resp =
-        create_rw_signal(None::<Result<Option<ViewableRegistrationFlow>, ServerFnError>>);
+        create_rw_signal(None::<Result<RegistrationResponse, ServerFnError>>);
     // after user tries to register we update the signal resp.
     create_effect(move |_| {
         if let Some(resp) = register.value().get() {
@@ -161,15 +191,15 @@ pub fn RegistrationPage() -> impl IntoView {
         }
     });
     // Merge our resource and our action results into a single signal.
-    // if the user hasn't tried to registet yet we'll render the initial flow.
+    // if the user hasn't tried to register yet we'll render the initial flow.
     // if they have, we'll render the updated flow (including error messages etc).
     let registration_flow = Signal::derive(move || {
-        if let Some(flow) = register_resp.get() {
-            Some(flow)
+        if let Some(resp) = register_resp.get() {
+            Some(resp)
         } else {
             registration_flow
                 .get()
-                .map(|inner| inner.map(|inner| Some(inner)))
+                
         }
     });
     // this is the body of our registration form, we don't know what the inputs are so it's a stand in for some
@@ -177,7 +207,7 @@ pub fn RegistrationPage() -> impl IntoView {
     let body = create_rw_signal(HashMap::new());
     view! {
         // we'll render the fallback when the user hits the page for the first time
-      <Suspense fallback=||view!{Loading Login Details}>
+      <Suspense fallback=||view!{Loading Registration Details}>
         // if we get any errors, from either server functions we've merged we'll render them here.
         <ErrorBoundary fallback=|errors|view!{<ErrorTemplate errors/>}>
         {
@@ -186,41 +216,46 @@ pub fn RegistrationPage() -> impl IntoView {
           registration_flow.get().map(|resp|{
                 match resp {
                     // TODO add Oauth using the flow args (see type docs)
-                    Ok(Some(ViewableRegistrationFlow(RegistrationFlow{ui:box UiContainer{nodes,action,messages,..},..}))) => {
-                            let form_inner_html = nodes.into_iter().map(|node|kratos_html(node,body)).collect_view();
-                            body.update(move|map|{_=map.insert(String::from("action"),action);});
-
-                            view!{
-                                <form 
-                                
-                                on:submit=move|e|{
-                                    e.prevent_default();
-                                    register.dispatch(Register{body:body.get_untracked()});
-                                }
-                                id=ids::REGISTRATION_FORM_ID
-                                >
-                                {form_inner_html}
-                                // kratos_html renders messages for each node and these are the messages attached to the entire form.
-                                {messages.map(|messages|{
-                                    view!{
-                                        <For
-                                            each=move || messages.clone().into_iter()
-                                            key=|text| text.id
-                                            children=move |text: UiText| {
-                                              view! {
-                                                <p id=text.id>{text.text}</p>
-                                              }
-                                            }
-                                        />
+                    Ok(resp) => {
+                        match resp {
+                            RegistrationResponse::Flow(ViewableRegistrationFlow(RegistrationFlow{ui:box UiContainer{nodes,action,messages,..},..}))
+                            => {
+                                let form_inner_html = nodes.into_iter().map(|node|kratos_html(node,body)).collect_view();
+                                body.update(move|map|{_=map.insert(String::from("action"),action);});
+    
+                                view!{
+                                    <form 
+                                    
+                                    on:submit=move|e|{
+                                        e.prevent_default();
+                                        register.dispatch(Register{body:body.get_untracked()});
                                     }
-                                }).unwrap_or_default()}
-                                </form>
-                            }.into_view()
-
+                                    id=ids::REGISTRATION_FORM_ID
+                                    >
+                                    {form_inner_html}
+                                    // kratos_html renders messages for each node and these are the messages attached to the entire form.
+                                    {messages.map(|messages|{
+                                        view!{
+                                            <For
+                                                each=move || messages.clone().into_iter()
+                                                key=|text| text.id
+                                                children=move |text: UiText| {
+                                                  view! {
+                                                    <p id=text.id>{text.text}</p>
+                                                  }
+                                                }
+                                            />
+                                        }
+                                    }).unwrap_or_default()}
+                                    </form>
+                                }.into_view()
+    
+                        },
+                        RegistrationResponse::Success => {
+                            view!{<div id=ids::VERIFY_EMAIL_DIV_ID>"Check Email for Verification"</div>}.into_view()
+                           }
+                        }
                     },
-                    Ok(None) => {
-                        view!{<Redirect path="/check_email_for_verification"/>}.into_view()
-                    }
                     err => err.into_view(),
                 }
             })

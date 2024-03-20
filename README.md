@@ -82,3 +82,9 @@ https://docker.internal.host:3000/ to be a valid url.
 
 ## Thoughts, Feedback, Criticism, Comments?
 Send me any of the above, I'm @sjud on leptos discord. I'm always looking to improve and make these examples more helpful for the community. So please let me know how I can do that. Thanks!
+
+## Selenium 
+
+```sh
+docker run --shm-size=2g -p 4444:4444 -p 5900:5900 -p 7900:7900 --name selenium selenium/standalone-chrome:120.0.6099.62-chromedriver-120.0.6099.62-grid-4.16.0-20231206 
+```

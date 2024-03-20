@@ -2,8 +2,6 @@ use cfg_if::cfg_if;
 use http::status::StatusCode;
 use leptos::*;
 use thiserror::Error;
-#[cfg(feature="hydrate")]
-use wasm_bindgen::JsCast;
 #[cfg(feature = "ssr")]
 use leptos_axum::ResponseOptions;
 

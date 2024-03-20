@@ -29,16 +29,22 @@ services:
     networks:
       - mynetwork
 
-  selenium:
+  #selenium:
     #pinned to a recent (but arbitrary) historical version because ":latest" didn't work...
-    image: selenium/standalone-chrome:120.0.6099.62-chromedriver-120.0.6099.62-grid-4.16.0-20231206
-    ports:
-      - "4444:4444"
-      - "5900:5900"
-      - "7900:7900"
-    shm_size: 2g
-    networks:
-      - mynetwork
+    #image: selenium/standalone-chrome:latest
+    #120.0.6099.62-chromedriver-120.0.6099.62-grid-4.16.0-20231206
+    #ports:
+      #selenium grid
+     # - "4444:4444"
+      #?
+      #- "5900:5900"
+      #novnc
+      #- "7900:7900"
+      #remote debugging port
+      #- "9222:9222"
+    #shm_size: 2g
+    #networks:
+    #  - mynetwork
   
 networks:
   mynetwork:

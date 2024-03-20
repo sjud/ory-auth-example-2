@@ -4,15 +4,19 @@ use fileserv::file_and_error_handler;
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 use axum_server::tls_rustls::RustlsConfig;
+use tracing_subscriber::EnvFilter;
 use std::path::PathBuf;
 pub mod fileserv;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
+        .with_env_filter(EnvFilter::new("debug,h2=error"))
         .compact()
         .init();
+
+    let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+    app::business_logic::migrations::migrate(&pool).await.unwrap();
 
     let config = RustlsConfig::from_pem_file(
             PathBuf::from("./cert.pem"),
@@ -35,6 +39,7 @@ async fn main() {
     let app = Router::new()
         .leptos_routes(&leptos_options, routes, App)
         .fallback(file_and_error_handler)
+        .layer(axum::Extension(pool))
         .with_state(leptos_options);
 
     // run our app with hyper

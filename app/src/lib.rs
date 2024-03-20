@@ -1,6 +1,6 @@
 #![feature(box_patterns)]
 
-use crate::error_template::{AppError, ErrorTemplate};
+use crate::{error_template::{AppError, ErrorTemplate}};
 
 use leptos::*;
 use leptos_meta::*;
@@ -8,12 +8,17 @@ use leptos_router::*;
 
 pub mod error_template;
 pub mod auth;
+#[cfg(feature="ssr")]
+pub mod business_logic;
 use auth::*;
+
+#[derive(Clone,Copy,PartialEq,Debug,Default)]
+pub struct LoggedIn(bool);
 #[component]
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
-
+    provide_context(create_rw_signal(LoggedIn::default()));
     view! {
         <Stylesheet id="leptos" href="/pkg/ory-auth-example.css"/>
 
@@ -30,7 +35,8 @@ pub fn App() -> impl IntoView {
                 <Routes>
                     <Route path="" view=HomePage/>
                     <Route path=ids::REGISTER_ROUTE view=RegistrationPage/>
-                    <Route path=ids::VERIFY_EMAIL_ROUTE view=||view!{<div id=ids::VERIFY_EMAIL_DIV_ID>"Check Email for Verification"</div>}/>
+                    <Route path=ids::VERIFICATION_ROUTE view=VerificationPage/>
+                    <Route path=ids::LOGIN_ROUTE view=LoginPage/>
                 </Routes>
             </main>
         </Router>
@@ -40,9 +46,19 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
-
+    let logged_in = expect_context::<RwSignal<LoggedIn>>();
     view! {
         <h1>"Welcome to Leptos!"</h1>
+        <div>
         <a href="/register" id=ids::REGISTER_BUTTON_ID>Register</a>
+        </div>
+        <div>
+        <Show 
+            when=move||!logged_in().0 
+            fallback=||view!{<a href="/" id=ids::LOGOUT_BUTTON_ID>"Logout"</a>}
+            >
+            <a href="/login" id=ids::LOGIN_BUTTON_ID>"Login"</a>
+        </Show>
+        </div>
     }
 }

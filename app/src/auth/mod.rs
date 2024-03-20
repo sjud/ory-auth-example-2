@@ -1,10 +1,12 @@
 use leptos::*;
-use leptos_meta::*;
 use leptos_router::*;
 use super::error_template::ErrorTemplate;
 pub mod kratos_html;
 use kratos_html::kratos_html;
 pub mod registration;
 pub use registration::RegistrationPage;
-
+pub mod verification;
+pub use verification::VerificationPage;
 use serde::{Serialize,Deserialize};
+pub mod login;
+pub use login::LoginPage;
