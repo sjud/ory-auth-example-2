@@ -1,4 +1,4 @@
-/* 
+/*
 use ory_keto_client::models::{
     create_relationship_body::CreateRelationshipBody,
     post_check_permission_body::PostCheckPermissionBody,

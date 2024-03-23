@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use ory_kratos_client::models::{UiContainer, UiText, VerificationFlow};
-#[cfg(feature="ssr")]
-use tracing::debug;
 use super::*;
+use ory_kratos_client::models::{UiContainer, UiText, VerificationFlow};
+#[cfg(feature = "ssr")]
+use tracing::debug;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ViewableVerificationFlow(VerificationFlow);
@@ -15,7 +15,9 @@ impl IntoView for ViewableVerificationFlow {
 // https://{project}.projects.oryapis.com/self-service/verification/flows?id={}
 #[tracing::instrument]
 #[server]
-pub async fn init_verification(flow_id: String) -> Result<Option<ViewableVerificationFlow>, ServerFnError> {
+pub async fn init_verification(
+    flow_id: String,
+) -> Result<Option<ViewableVerificationFlow>, ServerFnError> {
     let cookie_jar = leptos_axum::extract::<axum_extra::extract::CookieJar>().await?;
     let csrf_cookie = cookie_jar
         .iter()
@@ -39,13 +41,11 @@ pub async fn init_verification(flow_id: String) -> Result<Option<ViewableVerific
         )
         .send()
         .await?;
-    debug!("{:#?}", resp);
     if resp.status().as_u16() == 403 {
         debug!("{:#?}", resp.text().await?);
         Ok(None)
     } else {
         let flow = resp.json::<ViewableVerificationFlow>().await?;
-        debug!("{:#?}", flow);
         Ok(Some(flow))
     }
 }
@@ -54,7 +54,7 @@ pub async fn init_verification(flow_id: String) -> Result<Option<ViewableVerific
 #[tracing::instrument]
 #[server]
 pub async fn verify(
-    body:HashMap<String,String>
+    body: HashMap<String, String>,
 ) -> Result<Option<ViewableVerificationFlow>, ServerFnError> {
     let mut body = body;
     let action = body
@@ -76,7 +76,7 @@ pub async fn verify(
         .post(&action)
         .header("x-csrf-token", csrf_token)
         .header("content-type", "application/json")
-        .header("accept","application/json")
+        .header("accept", "application/json")
         .header(
             "cookie",
             format!("{}={}", csrf_cookie.name(), csrf_cookie.value()),
@@ -84,7 +84,6 @@ pub async fn verify(
         .body(serde_json::to_string(&body)?)
         .send()
         .await?;
-    debug!("{:#?}", resp);
 
     let opts = expect_context::<leptos_axum::ResponseOptions>();
     opts.insert_header(
@@ -93,23 +92,20 @@ pub async fn verify(
     );
     match resp.json::<ViewableVerificationFlow>().await {
         Ok(flow) => {
-            debug!("{:#?}", flow);
             Ok(Some(flow))
-        },
+        }
         Err(err) => {
             let resp = client
-        .post(action)
-        .header("x-csrf-token", csrf_token)
-        .header("content-type", "application/json")
-        .header(
-            "cookie",
-            format!("{}={}", csrf_cookie.name(), csrf_cookie.value()),
-        )
-        .body(serde_json::to_string(&body)?)
-        .send()
-        .await?;     
-            debug!("{:#?}",err);
-            debug!("{:#?}",resp.text().await?);
+                .post(action)
+                .header("x-csrf-token", csrf_token)
+                .header("content-type", "application/json")
+                .header(
+                    "cookie",
+                    format!("{}={}", csrf_cookie.name(), csrf_cookie.value()),
+                )
+                .body(serde_json::to_string(&body)?)
+                .send()
+                .await?;
             Ok(None)
         }
     }
@@ -122,7 +118,9 @@ pub fn VerificationPage() -> impl IntoView {
     let params_map = use_query_map();
     let init_verification = create_local_resource(
         move || params_map().get("flow").cloned().unwrap_or_default(),
-        |flow_id| async move { init_verification(flow_id).await },
+        |flow_id| async move { 
+            init_verification(flow_id).await 
+        },
     );
     let verfication_resp =
         create_rw_signal(None::<Result<Option<ViewableVerificationFlow>, ServerFnError>>);
@@ -135,8 +133,7 @@ pub fn VerificationPage() -> impl IntoView {
         if let Some(flow) = verfication_resp.get() {
             Some(flow)
         } else {
-            init_verification
-                .get()
+            init_verification.get()
         }
     });
     let body = create_rw_signal(HashMap::new());

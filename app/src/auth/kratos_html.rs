@@ -1,9 +1,9 @@
+use super::*;
 use ory_kratos_client::models::ui_node_attributes::UiNodeAttributes;
 use ory_kratos_client::models::ui_node_attributes::UiNodeAttributesTypeEnum;
 use ory_kratos_client::models::UiNode;
 use ory_kratos_client::models::UiText;
 use std::collections::HashMap;
-use super::*;
 
 /// https://www.ory.sh/docs/kratos/concepts/ui-user-interface
 pub fn kratos_html(node: UiNode, body: RwSignal<HashMap<String, String>>) -> impl IntoView {
@@ -69,7 +69,7 @@ pub fn kratos_html(node: UiNode, body: RwSignal<HashMap<String, String>>) -> imp
                 .into_view()
             } else if _type != UiNodeAttributesTypeEnum::Hidden {
                 let id = ids::match_name_to_id(name.clone());
-                
+
                 view! {
                     <label>
                        <span>{&label}</span>

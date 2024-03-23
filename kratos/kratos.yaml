@@ -41,7 +41,7 @@ selfservice:
 
   flows:
     error:
-      ui_url: https://127.0.0.1:3000/error
+      ui_url: https://127.0.0.1:3000/kratos_error
 
     settings:
       ui_url: https://127.0.0.1:3000/settings

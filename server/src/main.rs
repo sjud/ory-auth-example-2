@@ -1,30 +1,30 @@
 use app::*;
 use axum::Router;
+use axum_server::tls_rustls::RustlsConfig;
 use fileserv::file_and_error_handler;
 use leptos::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
-use axum_server::tls_rustls::RustlsConfig;
-use tracing_subscriber::EnvFilter;
 use std::path::PathBuf;
+use tracing_subscriber::EnvFilter;
 pub mod fileserv;
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::new("debug,h2=error"))
+        .with_env_filter(EnvFilter::new("debug,reqwest=error,hyper=error,h2=error"))
         .compact()
         .init();
 
     let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
-    app::business_logic::migrations::migrate(&pool).await.unwrap();
-
-    let config = RustlsConfig::from_pem_file(
-            PathBuf::from("./cert.pem"),
-            PathBuf::from("./key.pem")
-        )
+    app::business_logic::migrations::migrate(&pool)
         .await
         .unwrap();
-    
+
+    let config =
+        RustlsConfig::from_pem_file(PathBuf::from("./cert.pem"), PathBuf::from("./key.pem"))
+            .await
+            .unwrap();
+
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:
     // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>
@@ -47,7 +47,7 @@ async fn main() {
     // axum_server::bind_rustl is a wrapper around that
     // in real use case we'd want to also run a server that redirects http requests with https to the https server
     println!("listening on https://{}", &addr);
-    axum_server::bind_rustls(addr,config)
+    axum_server::bind_rustls(addr, config)
         .serve(app.into_make_service())
         .await
         .unwrap();

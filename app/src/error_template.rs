@@ -1,9 +1,9 @@
 use cfg_if::cfg_if;
 use http::status::StatusCode;
 use leptos::*;
-use thiserror::Error;
 #[cfg(feature = "ssr")]
 use leptos_axum::ResponseOptions;
+use thiserror::Error;
 
 #[derive(Clone, Debug, Error)]
 pub enum AppError {
@@ -27,7 +27,7 @@ pub fn ErrorTemplate(
     #[prop(optional)] errors: Option<RwSignal<Errors>>,
 ) -> impl IntoView {
     let basic_err_msg = if let Some(errors_sig) = errors {
-        format!("{:#?}",errors_sig.get_untracked())
+        format!("{:#?}", errors_sig.get_untracked())
     } else {
         "No errors produced by signal".to_string()
     };
@@ -56,7 +56,6 @@ pub fn ErrorTemplate(
             response.set_status(errors[0].status_code());
         }
     }}
-
 
     view! {
         <h1>{if errors.len() > 1 { "Errors" } else { "Error" }}</h1>

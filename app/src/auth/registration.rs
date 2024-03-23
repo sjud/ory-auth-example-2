@@ -1,12 +1,10 @@
-use super::*;
 use super::kratos_html;
-use std::collections::HashMap;
+use super::*;
 use ory_kratos_client::models::RegistrationFlow;
 use ory_kratos_client::models::UiContainer;
 use ory_kratos_client::models::UiText;
+use std::collections::HashMap;
 
-#[cfg(feature = "ssr")]
-use tracing::debug;
 #[cfg(feature = "ssr")]
 use http::StatusCode;
 
@@ -19,7 +17,7 @@ impl IntoView for ViewableRegistrationFlow {
     }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum RegistrationResponse{
+pub enum RegistrationResponse {
     Flow(ViewableRegistrationFlow),
     Success,
 }
@@ -27,7 +25,7 @@ impl IntoView for RegistrationResponse {
     fn into_view(self) -> View {
         match self {
             Self::Flow(view) => view.into_view(),
-            _ => ().into_view()
+            _ => ().into_view(),
         }
     }
 }
@@ -45,9 +43,11 @@ pub async fn init_registration() -> Result<RegistrationResponse, ServerFnError> 
         .await?;
     let first_cookie = resp
         .cookies()
-        .filter(|c|c.name().contains("csrf_token"))
+        .filter(|c| c.name().contains("csrf_token"))
         .next()
-        .ok_or(ServerFnError::new("Expecting a cookie with csrf_token in name"))?;
+        .ok_or(ServerFnError::new(
+            "Expecting a cookie with csrf_token in name",
+        ))?;
     let csrf_token = first_cookie.value();
     let location = resp
         .headers()
@@ -74,18 +74,16 @@ pub async fn init_registration() -> Result<RegistrationResponse, ServerFnError> 
         .header("x-csrf-token", csrf_token)
         .send()
         .await?;
-    debug!("{:#?}", resp);
     let flow = resp.json::<ViewableRegistrationFlow>().await?;
     let opts = expect_context::<leptos_axum::ResponseOptions>();
     opts.insert_header(
         axum::http::HeaderName::from_static("cache-control"),
         axum::http::HeaderValue::from_str("private, no-cache, no-store, must-revalidate")?,
     );
-    opts.insert_header(
+    opts.append_header(
         axum::http::HeaderName::from_static("set-cookie"),
         axum::http::HeaderValue::from_str(set_cookie)?,
     );
-    debug!("{:#?}", flow);
     Ok(RegistrationResponse::Flow(flow))
 }
 
@@ -94,9 +92,9 @@ pub async fn init_registration() -> Result<RegistrationResponse, ServerFnError> 
 pub async fn register(
     body: HashMap<String, String>,
 ) -> Result<RegistrationResponse, ServerFnError> {
-    use ory_kratos_client::models::successful_native_registration::SuccessfulNativeRegistration;
-    use ory_kratos_client::models::generic_error::GenericError;
     use ory_kratos_client::models::error_browser_location_change_required::ErrorBrowserLocationChangeRequired;
+    use ory_kratos_client::models::generic_error::GenericError;
+    use ory_kratos_client::models::successful_native_registration::SuccessfulNativeRegistration;
 
     let pool = leptos_axum::extract::<axum::Extension<sqlx::SqlitePool>>().await?;
 
@@ -116,7 +114,6 @@ pub async fn register(
     let client = reqwest::ClientBuilder::new()
         .redirect(reqwest::redirect::Policy::none())
         .build()?;
-    debug!("Sending {action} ");
     let resp = client
         .post(&action)
         .header("x-csrf-token", csrf_token)
@@ -129,7 +126,6 @@ pub async fn register(
         .body(serde_json::to_string(&body)?)
         .send()
         .await?;
-    debug!("{:#?}", resp);
 
     let opts = expect_context::<leptos_axum::ResponseOptions>();
     opts.insert_header(
@@ -137,17 +133,22 @@ pub async fn register(
         axum::http::HeaderValue::from_str("private, no-cache, no-store, must-revalidate")?,
     );
     for value in resp.headers().get_all("set-cookie").iter() {
-        opts.insert_header(
+        opts.append_header(
             axum::http::HeaderName::from_static("set-cookie"),
             axum::http::HeaderValue::from_str(value.to_str()?)?,
         );
     }
     if resp.status().as_u16() == StatusCode::BAD_REQUEST.as_u16() {
-        Ok(RegistrationResponse::Flow(resp.json::<ViewableRegistrationFlow>().await?))
+        Ok(RegistrationResponse::Flow(
+            resp.json::<ViewableRegistrationFlow>().await?,
+        ))
     } else if resp.status().as_u16() == StatusCode::OK.as_u16() {
         // get identity, session, session token
-        let SuccessfulNativeRegistration{
-            continue_with,identity,session,session_token
+        let SuccessfulNativeRegistration {
+            continue_with,
+            identity,
+            session,
+            session_token,
         } = resp.json::<SuccessfulNativeRegistration>().await?;
         let identity_id = identity.id;
         crate::business_logic::database_calls::create_user(&pool, identity_id).await?;
@@ -155,22 +156,22 @@ pub async fn register(
         Ok(RegistrationResponse::Success)
     } else if resp.status().as_u16() == StatusCode::GONE.as_u16() {
         let err = resp.json::<GenericError>().await?;
-        let err = format!("{:#?}",err);
-        debug!(err);
+        let err = format!("{:#?}", err);
         Err(ServerFnError::new(err))
     } else if resp.status().as_u16() == StatusCode::UNPROCESSABLE_ENTITY.as_u16() {
         let err = resp.json::<ErrorBrowserLocationChangeRequired>().await?;
-        let err = format!("{:#?}",err);
-        debug!(err);
+        let err = format!("{:#?}", err);
         Err(ServerFnError::new(err))
-    } else if resp.status().as_u16() == StatusCode::TEMPORARY_REDIRECT.as_u16(){
-        let text = format!("{:#?}",resp);
+    } else if resp.status().as_u16() == StatusCode::TEMPORARY_REDIRECT.as_u16() {
+        let text = format!("{:#?}", resp);
         Err(ServerFnError::new(text))
     } else {
         // this is a status code that isn't covered by the documentation
         // https://www.ory.sh/docs/reference/api#tag/frontend/operation/updateRegistrationFlow
         let status_code = resp.status().as_u16();
-        Err(ServerFnError::new(format!("{status_code} is not covered under the ory documentation?")))
+        Err(ServerFnError::new(format!(
+            "{status_code} is not covered under the ory documentation?"
+        )))
     }
 }
 
@@ -180,10 +181,11 @@ pub fn RegistrationPage() -> impl IntoView {
 
     // when we hit the page initiate a flow with kratos and get back data for ui renering.
     let registration_flow =
-        create_local_resource(|| (), |_| async move { init_registration().await });
+        create_local_resource(|| (), |_| async move { 
+            init_registration().await 
+        });
     // Is none if user hasn't submitted data.
-    let register_resp =
-        create_rw_signal(None::<Result<RegistrationResponse, ServerFnError>>);
+    let register_resp = create_rw_signal(None::<Result<RegistrationResponse, ServerFnError>>);
     // after user tries to register we update the signal resp.
     create_effect(move |_| {
         if let Some(resp) = register.value().get() {
@@ -197,9 +199,7 @@ pub fn RegistrationPage() -> impl IntoView {
         if let Some(resp) = register_resp.get() {
             Some(resp)
         } else {
-            registration_flow
-                .get()
-                
+            registration_flow.get()
         }
     });
     // this is the body of our registration form, we don't know what the inputs are so it's a stand in for some
@@ -222,12 +222,13 @@ pub fn RegistrationPage() -> impl IntoView {
                             => {
                                 let form_inner_html = nodes.into_iter().map(|node|kratos_html(node,body)).collect_view();
                                 body.update(move|map|{_=map.insert(String::from("action"),action);});
-    
+
                                 view!{
-                                    <form 
-                                    
+                                    <form
+
                                     on:submit=move|e|{
                                         e.prevent_default();
+                                        e.stop_propagation();
                                         register.dispatch(Register{body:body.get_untracked()});
                                     }
                                     id=ids::REGISTRATION_FORM_ID
@@ -249,7 +250,7 @@ pub fn RegistrationPage() -> impl IntoView {
                                     }).unwrap_or_default()}
                                     </form>
                                 }.into_view()
-    
+
                         },
                         RegistrationResponse::Success => {
                             view!{<div id=ids::VERIFY_EMAIL_DIV_ID>"Check Email for Verification"</div>}.into_view()
@@ -264,4 +265,3 @@ pub fn RegistrationPage() -> impl IntoView {
       </Suspense>
     }
 }
-

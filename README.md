@@ -76,15 +76,16 @@ The `ids` crate includes a list of static strings that we'll use in our fantocci
 ## How to use mkcert to get a locally signed certificate (and why)
 We need to use https because we are sending cookies with the `Secure;` flag, cookies with the Secure flag can't be used in Chrome
 unless delivered over https. Since we're using chromedriver for e2e testing let's use mkcert to create a cert that will allow 
-https://docker.internal.host:3000/ to be a valid url.
+https://127.0.0.1:3000/ to be a valid url.
+Install mkcert and then
+
+```sh
+mkcert -install localhost 127.0.0.1 ::1
+```
+
+Copy your cert.pem, key.pem and rootCA.pem into this crate's root.
 
 ## How this project's git workflow works
 
 ## Thoughts, Feedback, Criticism, Comments?
 Send me any of the above, I'm @sjud on leptos discord. I'm always looking to improve and make these examples more helpful for the community. So please let me know how I can do that. Thanks!
-
-## Selenium 
-
-```sh
-docker run --shm-size=2g -p 4444:4444 -p 5900:5900 -p 7900:7900 --name selenium selenium/standalone-chrome:120.0.6099.62-chromedriver-120.0.6099.62-grid-4.16.0-20231206 
-```
