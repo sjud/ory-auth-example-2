@@ -1,9 +1,18 @@
+<<<<<<< HEAD
 use super::*;
 use std::collections::HashMap;
+=======
+use std::collections::HashMap;
+use super::*;
+>>>>>>> e1b880d (idk)
 
 use ory_kratos_client::models::LoginFlow;
 use ory_kratos_client::models::UiContainer;
 use ory_kratos_client::models::UiText;
+<<<<<<< HEAD
+=======
+
+>>>>>>> e1b880d (idk)
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewableLoginFlow(LoginFlow);
@@ -64,6 +73,11 @@ pub async fn init_login() -> Result<LoginResponse, ServerFnError> {
     Ok(LoginResponse::Flow(flow))
 }
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> e1b880d (idk)
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum LoginResponse {
     Flow(ViewableLoginFlow),
@@ -80,11 +94,21 @@ impl IntoView for LoginResponse {
 
 #[tracing::instrument]
 #[server]
+<<<<<<< HEAD
 pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, ServerFnError> {
     use http::StatusCode;
     use ory_kratos_client::models::error_browser_location_change_required::ErrorBrowserLocationChangeRequired;
     use ory_kratos_client::models::generic_error::GenericError;
     use ory_kratos_client::models::successful_native_login::SuccessfulNativeLogin;
+=======
+pub async fn login(
+    body: HashMap<String, String>,
+) -> Result<LoginResponse, ServerFnError> {
+    use ory_kratos_client::models::error_browser_location_change_required::ErrorBrowserLocationChangeRequired;
+    use ory_kratos_client::models::generic_error::GenericError;
+    use ory_kratos_client::models::successful_native_login::SuccessfulNativeLogin;
+    use http::StatusCode;
+>>>>>>> e1b880d (idk)
 
     let pool = leptos_axum::extract::<axum::Extension<sqlx::SqlitePool>>().await?;
 
@@ -109,7 +133,11 @@ pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, Serve
         .post(&action)
         .header("x-csrf-token", csrf_token)
         .header("content-type", "application/json")
+<<<<<<< HEAD
         .header("accept", "application/json")
+=======
+        //.header("accept","application/json")
+>>>>>>> e1b880d (idk)
         .header(
             "cookie",
             format!("{}={}", csrf_cookie.name(), csrf_cookie.value()),
@@ -131,9 +159,17 @@ pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, Serve
         );
     }
     if resp.status().as_u16() == StatusCode::BAD_REQUEST.as_u16() {
+<<<<<<< HEAD
         Ok(LoginResponse::Flow(resp.json::<ViewableLoginFlow>().await?))
     } else if resp.status().as_u16() == StatusCode::OK.as_u16() {
         // ory_kratos_session cookie set above.
+=======
+        Ok(LoginResponse::Flow(
+            resp.json::<ViewableLoginFlow>().await?,
+        ))
+    } else if resp.status().as_u16() == StatusCode::OK.as_u16() {   
+        // ory_kratos_session cookie set above.       
+>>>>>>> e1b880d (idk)
         Ok(LoginResponse::Success)
     } else if resp.status().as_u16() == StatusCode::GONE.as_u16() {
         let err = resp.json::<GenericError>().await?;
@@ -159,7 +195,13 @@ pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, Serve
 #[component]
 pub fn LoginPage() -> impl IntoView {
     let login = Action::<Login, _>::server();
+<<<<<<< HEAD
     let login_flow = create_local_resource(|| (), |_| async move { init_login().await });
+=======
+    let login_flow = create_local_resource(|| (), |_| async move { 
+        init_login().await 
+    });
+>>>>>>> e1b880d (idk)
 
     let login_resp = create_rw_signal(None::<Result<LoginResponse, ServerFnError>>);
     // after user tries to login we update the signal resp.
@@ -191,10 +233,17 @@ pub fn LoginPage() -> impl IntoView {
                                 body.update(move|map|{_=map.insert(String::from("action"),action);});
                                     view!{
                                         <form id=ids::LOGIN_FORM_ID
+<<<<<<< HEAD
                                         on:submit=move|e|{
                                             e.prevent_default();
                                             e.stop_propagation();
                                             login.dispatch(Login{body:body.get_untracked()});
+=======
+                                        on:click=move|e|{
+                                            e.prevent_default();
+                                            e.stop_propagation();
+                                            login.dispatch(Login{body:body.get_untracked()});    
+>>>>>>> e1b880d (idk)
                                         }>
                                         {form_inner_html}
                                         {messages.map(|messages|{

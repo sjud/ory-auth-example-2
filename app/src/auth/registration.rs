@@ -180,7 +180,9 @@ pub fn RegistrationPage() -> impl IntoView {
 
     // when we hit the page initiate a flow with kratos and get back data for ui renering.
     let registration_flow =
-        create_local_resource(|| (), |_| async move { init_registration().await });
+        create_local_resource(|| (), |_| async move { 
+            init_registration().await 
+        });
     // Is none if user hasn't submitted data.
     let register_resp = create_rw_signal(None::<Result<RegistrationResponse, ServerFnError>>);
     // after user tries to register we update the signal resp.

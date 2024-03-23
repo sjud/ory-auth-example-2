@@ -1,9 +1,16 @@
 #![feature(never_type)]
 mod fixtures;
 
+<<<<<<< HEAD
 use anyhow::anyhow;
 use anyhow::Result;
 use chromiumoxide::cdp::browser_protocol::log::EventEntryAdded;
+=======
+use std::{collections::HashMap, sync::Arc, time::Duration};
+use chromiumoxide::cdp::browser_protocol::log::EventEntryAdded;
+use anyhow::anyhow;
+use anyhow::Result;
+>>>>>>> e1b880d (idk)
 use chromiumoxide::cdp::browser_protocol::network::Cookie;
 use chromiumoxide::cdp::js_protocol::runtime::EventConsoleApiCalled;
 use chromiumoxide::{
@@ -22,7 +29,10 @@ use futures::channel::mpsc::Sender;
 use futures_util::stream::StreamExt;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+<<<<<<< HEAD
 use std::{collections::HashMap, sync::Arc, time::Duration};
+=======
+>>>>>>> e1b880d (idk)
 use tokio::sync::RwLock;
 use tokio_tungstenite::connect_async;
 use tracing::instrument;
@@ -33,6 +43,7 @@ static EMAIL_ID_MAP: Lazy<RwLock<HashMap<String, String>>> =
 #[derive(Clone, Debug, PartialEq)]
 pub struct RequestPair {
     req: Option<Request>,
+<<<<<<< HEAD
     redirect_resp: Option<Response>,
     resp: Option<Response>,
     cookies_before_request: String,
@@ -55,6 +66,30 @@ let screenshot =   world
    */
 #[derive(Clone, Debug)]
 pub enum CookieEnum {
+=======
+    redirect_resp:Option<Response>,
+    resp: Option<Response>,
+    cookies_before_request: String,
+    cookies_after_response:String,
+    ts:std::time::Instant,
+}
+
+/*
+              let screenshot =   world
+                .page
+                .screenshot(
+                    ScreenshotParams::builder()
+                        .capture_beyond_viewport(true)
+                        .full_page(true)
+                        .build(),
+                )
+                .await
+                .unwrap();
+                world.screenshots.push(screenshot);
+                 */
+#[derive(Clone,Debug)]
+pub enum CookieEnum{
+>>>>>>> e1b880d (idk)
     BeforeReq(String),
     AfterResp(String),
 }
@@ -68,7 +103,11 @@ impl RequestPair {
         } else {
             ("NO REQ".to_string(), "NO REQ".to_string())
         };
+<<<<<<< HEAD
         let (top_redirect_resp, _redirect_resp_headers) = if let Some(resp) = &self.redirect_resp {
+=======
+        let (top_redirect_resp,_redirect_resp_headers) = if let Some(resp) = &self.redirect_resp {
+>>>>>>> e1b880d (idk)
             (
                 format!("{} : {}", resp.status, resp.url),
                 format!("{} :\n {:#?}", resp.url, resp.headers),
@@ -84,7 +123,11 @@ impl RequestPair {
         } else {
             ("NO RESP".to_string(), "NO RESP".to_string())
         };
+<<<<<<< HEAD
 
+=======
+   
+>>>>>>> e1b880d (idk)
         format!(
             "REQ: {}\n RESP: {}\n \n REDIRECT {} \n REQ_HEADERS: {} \n REQ_COOKIES: \n{}\n RESP_HEADERS:{} \n RESP_COOKIES: \n{}\n ",
             top_req, top_resp,top_redirect_resp,  req_headers,  self.cookies_before_request,resp_headers,self.cookies_after_response
@@ -108,6 +151,10 @@ async fn main() -> Result<()> {
             if let tokio_tungstenite::tungstenite::Message::Text(text) = msg.unwrap() {
                 let Email { id, to } = serde_json::from_str::<Email>(&text).unwrap();
                 let email = to[0].email.clone();
+<<<<<<< HEAD
+=======
+                tracing::info!("Inserting into EMAIL_ID_MAP : {email}, {id}");
+>>>>>>> e1b880d (idk)
                 EMAIL_ID_MAP.write().await.insert(email, id.to_string());
             }
         }
@@ -120,8 +167,13 @@ async fn main() -> Result<()> {
         .fail_fast()
         .before(|_feature, _rule, scenario, world| {
             Box::pin(async move {
+<<<<<<< HEAD
                 let screenshot_directory_name = format!("./screenshots/{}", scenario.name);
                 if let Ok(sc_dir) = std::fs::read_dir(&screenshot_directory_name) {
+=======
+                let screenshot_directory_name = format!("./screenshots/{}",scenario.name);
+                if let Ok(sc_dir) = std::fs::read_dir(&screenshot_directory_name){
+>>>>>>> e1b880d (idk)
                     for file in sc_dir {
                         if let Ok(file) = file {
                             std::fs::remove_file(file.path()).unwrap();
@@ -130,7 +182,11 @@ async fn main() -> Result<()> {
                 } else {
                     std::fs::create_dir(&screenshot_directory_name).unwrap();
                 }
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> e1b880d (idk)
                 // take the page from world
                 // add network event listener, tracking requests and pairing them with responses
                 // store them somewhere inside of the world.
@@ -140,12 +196,24 @@ async fn main() -> Result<()> {
                     .await
                     .unwrap();
                 let mut resp_events = page
+<<<<<<< HEAD
                     .event_listener::<EventResponseReceived>()
                     .await
                     .unwrap();
                 world.page.enable_log().await.unwrap();
                 // get log events generated by the browser
                 let mut log_events = page.event_listener::<EventEntryAdded>().await.unwrap();
+=======
+                .event_listener::<EventResponseReceived>()
+                .await
+                .unwrap();
+            world.page.enable_log().await.unwrap();
+                // get log events generated by the browser
+                let mut log_events = page
+                    .event_listener::<EventEntryAdded>()
+                    .await
+                    .unwrap();
+>>>>>>> e1b880d (idk)
                 // get log events generated by leptos or other console.log() calls..
                 let mut runtime_events = page
                     .event_listener::<EventConsoleApiCalled>()
@@ -156,14 +224,24 @@ async fn main() -> Result<()> {
 
                 tokio::task::spawn(async move {
                     while let Some(event) = log_events.next().await {
+<<<<<<< HEAD
                         let EventEntryAdded { entry } =
                             Arc::<EventEntryAdded>::try_unwrap(event).unwrap();
                         console_logs.write().await.push(format!(" {entry:#?} "));
                     }
+=======
+                        let EventEntryAdded{entry} =
+                            Arc::<EventEntryAdded>::try_unwrap(event).unwrap();
+                            console_logs.write().await.push(
+                                format!(" {entry:#?} ")
+                            );
+                    }   
+>>>>>>> e1b880d (idk)
                 });
 
                 tokio::task::spawn(async move {
                     while let Some(event) = runtime_events.next().await {
+<<<<<<< HEAD
                         let event = Arc::<EventConsoleApiCalled>::try_unwrap(event).unwrap();
                         console_logs_2
                             .write()
@@ -173,6 +251,17 @@ async fn main() -> Result<()> {
                 });
 
                 let (tx, mut rx) = futures::channel::mpsc::channel::<Option<CookieEnum>>(1000);
+=======
+                        let event =
+                            Arc::<EventConsoleApiCalled>::try_unwrap(event).unwrap();
+                            console_logs_2.write().await.push(
+                                format!(" CONSOLE_LOG: {:#?}",event.args)
+                            );
+                    }   
+                });
+
+                let (tx,mut rx) = futures::channel::mpsc::channel::<Option<CookieEnum>>(1000);
+>>>>>>> e1b880d (idk)
                 let mut tx_c = tx.clone();
                 let mut tx_c_2 = tx.clone();
 
@@ -188,6 +277,7 @@ async fn main() -> Result<()> {
                         if let Some(cookie_enum) = some_request_id {
                             match cookie_enum {
                                 CookieEnum::BeforeReq(req_id) => {
+<<<<<<< HEAD
                                     let cookies = page
                                         .get_cookies()
                                         .await
@@ -220,6 +310,25 @@ async fn main() -> Result<()> {
                                         .cookies_after_response = cookies;
                                 }
                             }
+=======
+                                    let cookies = page.get_cookies().await.unwrap_or_default()
+                                    .iter()
+                                    .map(|cookie| format!("name={}", cookie.name,))
+                                    .collect::<Vec<String>>()
+                                    .join("\n");
+                                    req_resp.write().await.get_mut(&req_id).unwrap().cookies_before_request = cookies;
+                                }
+                                CookieEnum::AfterResp(req_id) => {
+                                    let cookies = page.get_cookies().await.unwrap_or_default()
+                                    .iter()
+                                    .map(|cookie| format!("name={}", cookie.name,))
+                                    .collect::<Vec<String>>()
+                                    .join("\n");
+                                    req_resp.write().await.get_mut(&req_id).unwrap().cookies_after_response = cookies;
+                                }
+                            }
+                            
+>>>>>>> e1b880d (idk)
                         } else {
                             break;
                         }
@@ -227,7 +336,11 @@ async fn main() -> Result<()> {
                 });
 
                 let req_resp = world.req_resp.clone();
+<<<<<<< HEAD
 
+=======
+            
+>>>>>>> e1b880d (idk)
                 tokio::task::spawn(async move {
                     while let Some(event) = req_events.next().await {
                         let event: EventRequestWillBeSent =
@@ -235,13 +348,18 @@ async fn main() -> Result<()> {
                         if event.request.url.contains("/pkg/") {
                             continue;
                         }
+<<<<<<< HEAD
                         let req_id = event.request_id.inner().clone();
+=======
+                            let req_id = event.request_id.inner().clone();
+>>>>>>> e1b880d (idk)
                         req_resp.write().await.insert(
                             req_id.clone(),
                             RequestPair {
                                 req: Some(event.request),
                                 redirect_resp: event.redirect_response,
                                 resp: None,
+<<<<<<< HEAD
                                 cookies_before_request: "".to_string(),
                                 cookies_after_response: "".to_string(),
                                 ts: std::time::Instant::now(),
@@ -252,18 +370,36 @@ async fn main() -> Result<()> {
                     }
                 });
 
+=======
+                                cookies_before_request:"".to_string(),
+                                cookies_after_response:"".to_string(),
+                                ts:std::time::Instant::now(),
+                            },
+                        );
+                        tx_c.try_send(Some(CookieEnum::BeforeReq(req_id.clone()))).unwrap();
+                    }
+                });
+         
+>>>>>>> e1b880d (idk)
                 let req_resp = world.req_resp.clone();
                 tokio::task::spawn(async move {
                     while let Some(event) = resp_events.next().await {
                         let event: EventResponseReceived =
                             Arc::<EventResponseReceived>::try_unwrap(event).unwrap();
                         if event.response.url.contains("/pkg/") {
+<<<<<<< HEAD
                             continue;
                         }
                         let req_id = event.request_id.inner().clone();
                         tx_c_2
                             .try_send(Some(CookieEnum::AfterResp(req_id.clone())))
                             .unwrap();
+=======
+                                continue;
+                        }
+                        let req_id = event.request_id.inner().clone();
+                        tx_c_2.try_send(Some(CookieEnum::AfterResp(req_id.clone()))).unwrap();
+>>>>>>> e1b880d (idk)
                         if let Some(request_pair) = req_resp.write().await.get_mut(&req_id) {
                             request_pair.resp = Some(event.response);
                         } else {
@@ -271,11 +407,19 @@ async fn main() -> Result<()> {
                                 req_id.clone(),
                                 RequestPair {
                                     req: None,
+<<<<<<< HEAD
                                     redirect_resp: None,
                                     resp: Some(event.response),
                                     cookies_before_request: "No cookie?".to_string(),
                                     cookies_after_response: "No cookie?".to_string(),
                                     ts: std::time::Instant::now(),
+=======
+                                    redirect_resp:None,
+                                    resp: Some(event.response),
+                                    cookies_before_request: "No cookie?".to_string(),
+                                    cookies_after_response: "No cookie?".to_string(),
+                                    ts:std::time::Instant::now(),
+>>>>>>> e1b880d (idk)
                                 },
                             );
                         }
@@ -286,6 +430,7 @@ async fn main() -> Result<()> {
         })
         .after(|_feature, _rule, scenario, ev, world| {
             Box::pin(async move {
+<<<<<<< HEAD
                 let screenshot_directory_name = format!("./screenshots/{}", scenario.name);
 
                 let world = world.unwrap();
@@ -321,6 +466,31 @@ async fn main() -> Result<()> {
                             screenshot,
                         )
                         .unwrap();
+=======
+                let screenshot_directory_name = format!("./screenshots/{}",scenario.name);
+
+                let world = world.unwrap();
+                // screenshot the last step 
+                let screenshot =   world
+                .page
+                .screenshot(
+                    ScreenshotParams::builder()
+                        .capture_beyond_viewport(true)
+                        .full_page(true)
+                        .build(),
+                )
+                .await
+                .unwrap();
+                world.screenshots.push(screenshot);
+                
+                if let cucumber::event::ScenarioFinished::StepFailed(_, _, _) = ev {
+                    // close the cookie task.
+                    world.cookie_sender.as_mut().unwrap().try_send(None).unwrap();
+                    // print any applicable screenshots (just the last one of the failed step if there was none taken during the scenario)
+                    for (i,screenshot) in world.screenshots.iter().enumerate() {
+                        // i.e ./screenshots/login/1.png
+                        std::fs::write(screenshot_directory_name.clone()+"/"+i.to_string().as_str()+".png",screenshot).unwrap();
+>>>>>>> e1b880d (idk)
                     }
                     // print network
                     let mut network_output = world
@@ -328,6 +498,7 @@ async fn main() -> Result<()> {
                         .read()
                         .await
                         .values()
+<<<<<<< HEAD
                         .map(|val| val.clone())
                         .collect::<Vec<RequestPair>>();
 
@@ -336,18 +507,43 @@ async fn main() -> Result<()> {
                     let network_output = network_output
                         .into_iter()
                         .map(|val| val.to_string())
+=======
+                        .map(|val|val.clone())
+                        .collect::<Vec<RequestPair>>();
+                    
+                    network_output.sort_by(|a,b|{
+                        a.ts.cmp(&b.ts)
+                    });
+
+                    let network_output =
+                        network_output
+                        .into_iter()
+                        .map(|val|val.to_string())
+>>>>>>> e1b880d (idk)
                         .collect::<Vec<String>>()
                         .join("\n");
 
                     std::fs::write("./network_output", network_output.as_bytes()).unwrap();
 
+<<<<<<< HEAD
                     let console_logs = world.console_logs.read().await.join("\n");
+=======
+                    let console_logs = world
+                    .console_logs
+                    .read()
+                    .await
+                    .join("\n");
+>>>>>>> e1b880d (idk)
 
                     std::fs::write("./console_logs", console_logs.as_bytes()).unwrap();
 
                     // print html
                     let html = world.page.content().await.unwrap();
+<<<<<<< HEAD
 
+=======
+                 
+>>>>>>> e1b880d (idk)
                     std::fs::write("./html", html.as_bytes()).unwrap();
                 }
                 world.browser.close().await.unwrap();
@@ -364,6 +560,10 @@ async fn build_browser() -> Result<Browser, Box<dyn std::error::Error>> {
     let (browser, mut handler) = Browser::launch(
         BrowserConfig::builder()
             //.enable_request_intercept()
+<<<<<<< HEAD
+=======
+            
+>>>>>>> e1b880d (idk)
             .disable_cache()
             .request_timeout(Duration::from_secs(1))
             //.with_head()
@@ -393,9 +593,15 @@ pub struct AppWorld {
     pub page: Page,
     pub req_resp: Arc<RwLock<HashMap<String, RequestPair>>>,
     pub clipboard: HashMap<&'static str, String>,
+<<<<<<< HEAD
     pub cookie_sender: Option<Sender<Option<CookieEnum>>>,
     pub screenshots: Vec<Vec<u8>>,
     pub console_logs: Arc<RwLock<Vec<String>>>,
+=======
+    pub cookie_sender:Option<Sender<Option<CookieEnum>>>,
+    pub screenshots:Vec<Vec<u8>>,
+    pub console_logs:Arc<RwLock<Vec<String>>>,
+>>>>>>> e1b880d (idk)
 }
 
 impl std::fmt::Debug for AppWorld {
@@ -415,9 +621,15 @@ impl AppWorld {
             page,
             req_resp: Arc::new(RwLock::new(HashMap::new())),
             clipboard: HashMap::new(),
+<<<<<<< HEAD
             cookie_sender: None,
             screenshots: Vec::new(),
             console_logs: Arc::new(RwLock::new(Vec::new())),
+=======
+            cookie_sender:None,
+            screenshots:Vec::new(),
+            console_logs:Arc::new(RwLock::new(Vec::new())),
+>>>>>>> e1b880d (idk)
         })
     }
 
@@ -500,6 +712,10 @@ impl AppWorld {
         value: S,
     ) -> Result<()> {
         let element = self.find(id).await?;
+<<<<<<< HEAD
+=======
+        tracing::info!("inserting {value} into {id}");
+>>>>>>> e1b880d (idk)
         element.focus().await?.type_str(value).await?;
         self.screenshot().await?;
         Ok(())

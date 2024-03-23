@@ -12,6 +12,10 @@ e2e/html
 e2e/network_output
 e2e/screenshots/*
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+e2e/console_logs
+>>>>>>> e1b880d (idk)
 =======
 e2e/console_logs
 >>>>>>> e1b880d (idk)
