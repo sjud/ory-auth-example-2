@@ -13,7 +13,9 @@ pub use login::LoginPage;
 pub mod kratos_error;
 pub use kratos_error::KratosErrorPage;
 pub mod logout;
-pub use logout::{LogoutButton,LogoutPage};
+pub use logout::{LogoutButton, LogoutPage};
+pub mod session;
+pub use session::HasSession;
 
-
-
+#[cfg(feature = "ssr")]
+pub mod extractors;

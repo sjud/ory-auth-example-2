@@ -55,7 +55,6 @@ pub async fn navigate_to_register(world: &mut AppWorld) -> Result<()> {
 #[given("I enter valid credentials")]
 pub async fn fill_form_fields_with_credentials(world: &mut AppWorld) -> Result<()> {
     let email = FreeEmail(EN).fake::<String>();
-    tracing::info!("EMAIL: {email}");
     world
         .set_field(ids::EMAIL_INPUT_ID, &email)
         .await
@@ -78,6 +77,7 @@ pub async fn fill_form_fields_with_credentials(world: &mut AppWorld) -> Result<(
 }
 
 #[when("I enter valid credentials")]
+#[given("I re-enter valid credentials")]
 pub async fn fill_form_fields_with_previous_credentials(world: &mut AppWorld) -> Result<()> {
     let email = world.clipboard.get("email").cloned();
     let email = if let Some(email) = email {
@@ -87,7 +87,6 @@ pub async fn fill_form_fields_with_previous_credentials(world: &mut AppWorld) ->
         world.clipboard.insert("email", email.clone());
         email
     };
-    tracing::info!("EMAIL: {email}");
     world
         .set_field(ids::EMAIL_INPUT_ID, &email)
         .await
@@ -155,7 +154,7 @@ pub async fn copy_code_onto_verification_page(world: &mut AppWorld) -> Result<()
         .clipboard
         .get("code")
         .ok_or(anyhow!("link not found in clipboard"))?
-        .clone(); 
+        .clone();
     world
         .set_field(ids::VERFICATION_CODE_ID, code)
         .await
@@ -175,16 +174,25 @@ pub async fn click_login(world: &mut AppWorld) -> Result<()> {
 }
 
 #[when("I click logout")]
-pub async fn click_logout(world:&mut AppWorld) -> Result<()> {
+pub async fn click_logout(world: &mut AppWorld) -> Result<()> {
     world.click(ids::LOGOUT_BUTTON_ID).await?;
     wait_250().await;
+    world.errors().await?;
     Ok(())
 }
 
 #[then("I am logged out")]
 #[given("I am logged out")]
-pub async fn check_ory_kratos_cookie_doesnt_exist(world:&mut AppWorld) -> Result<()> {
-    if !world.page.get_cookies().await?.iter().filter(|c|c.name.contains("ory_kratos_session")).collect::<Vec<_>>().is_empty() {
+pub async fn check_ory_kratos_cookie_doesnt_exist(world: &mut AppWorld) -> Result<()> {
+    if !world
+        .page
+        .get_cookies()
+        .await?
+        .iter()
+        .filter(|c| c.name.contains("ory_kratos_session"))
+        .collect::<Vec<_>>()
+        .is_empty()
+    {
         Err(anyhow!("Ory kratos cookie exists."))
     } else {
         Ok(())
@@ -193,8 +201,16 @@ pub async fn check_ory_kratos_cookie_doesnt_exist(world:&mut AppWorld) -> Result
 
 #[then("I am logged in")]
 #[given("I am logged in")]
-pub async fn check_ory_kratos_cookie_exists(world:&mut AppWorld) -> Result<()> {
-    if world.page.get_cookies().await?.iter().filter(|c|c.name.contains("ory_kratos_session")).collect::<Vec<_>>().is_empty() {
+pub async fn check_ory_kratos_cookie_exists(world: &mut AppWorld) -> Result<()> {
+    if world
+        .page
+        .get_cookies()
+        .await?
+        .iter()
+        .filter(|c| c.name.contains("ory_kratos_session"))
+        .collect::<Vec<_>>()
+        .is_empty()
+    {
         Err(anyhow!("Ory kratos cookie doesn't exists."))
     } else {
         Ok(())

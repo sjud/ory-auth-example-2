@@ -49,32 +49,39 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
-    let clear_cookies = Action::<ClearCookies,_>::server();
+    let clear_cookies = Action::<ClearCookies, _>::server();
     view! {
         <h1>"Welcome to Leptos!"</h1>
         <div>
-        <a href="/register" id=ids::REGISTER_BUTTON_ID>Register</a>
+            <a href="/register" id=ids::REGISTER_BUTTON_ID>Register</a>
         </div>
         <div>
-        <a href="/login" id=ids::LOGIN_BUTTON_ID>"Login"</a>
+            <a href="/login" id=ids::LOGIN_BUTTON_ID>"Login"</a>
         </div>
         <div>
-        <LogoutButton/>
+            <LogoutButton/>
         </div>
         <div>
-        <button on:click=move|_|clear_cookies.dispatch(ClearCookies{})>Clear cookies </button>
+            <button on:click=move|_|clear_cookies.dispatch(ClearCookies{})>Clear cookies </button>
+        </div>
+        <div>
+            <HasSession/>
         </div>
     }
 }
 
-#[cfg(feature="ssr")]
-pub async fn clear_cookies_inner() -> Result<(),ServerFnError> {
+#[cfg(feature = "ssr")]
+pub async fn clear_cookies_inner() -> Result<(), ServerFnError> {
     let opts = expect_context::<leptos_axum::ResponseOptions>();
 
     let cookie_jar = leptos_axum::extract::<axum_extra::extract::CookieJar>().await?;
     for cookie in cookie_jar.iter() {
         let mut cookie = cookie.clone();
-        cookie.set_expires(time::OffsetDateTime::now_utc().checked_sub(time::Duration::hours(24*356*10)).unwrap());
+        cookie.set_expires(
+            time::OffsetDateTime::now_utc()
+                .checked_sub(time::Duration::hours(24 * 356 * 10))
+                .unwrap(),
+        );
         cookie.set_max_age(time::Duration::seconds(0));
         cookie.set_path("/");
         // To clear an http only cookie, one must set an http only cookie.
@@ -91,8 +98,7 @@ pub async fn clear_cookies_inner() -> Result<(),ServerFnError> {
 
 #[tracing::instrument]
 #[server]
-pub async fn clear_cookies() -> Result<(),ServerFnError> {
+pub async fn clear_cookies() -> Result<(), ServerFnError> {
     clear_cookies_inner().await?;
     Ok(())
 }
-

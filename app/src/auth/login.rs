@@ -1,10 +1,9 @@
-use std::collections::HashMap;
 use super::*;
+use std::collections::HashMap;
 
 use ory_kratos_client::models::LoginFlow;
 use ory_kratos_client::models::UiContainer;
 use ory_kratos_client::models::UiText;
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewableLoginFlow(LoginFlow);
@@ -65,8 +64,6 @@ pub async fn init_login() -> Result<LoginResponse, ServerFnError> {
     Ok(LoginResponse::Flow(flow))
 }
 
-
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum LoginResponse {
     Flow(ViewableLoginFlow),
@@ -83,13 +80,11 @@ impl IntoView for LoginResponse {
 
 #[tracing::instrument]
 #[server]
-pub async fn login(
-    body: HashMap<String, String>,
-) -> Result<LoginResponse, ServerFnError> {
+pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, ServerFnError> {
+    use http::StatusCode;
     use ory_kratos_client::models::error_browser_location_change_required::ErrorBrowserLocationChangeRequired;
     use ory_kratos_client::models::generic_error::GenericError;
     use ory_kratos_client::models::successful_native_login::SuccessfulNativeLogin;
-    use http::StatusCode;
 
     let pool = leptos_axum::extract::<axum::Extension<sqlx::SqlitePool>>().await?;
 
@@ -114,7 +109,7 @@ pub async fn login(
         .post(&action)
         .header("x-csrf-token", csrf_token)
         .header("content-type", "application/json")
-        //.header("accept","application/json")
+        .header("accept", "application/json")
         .header(
             "cookie",
             format!("{}={}", csrf_cookie.name(), csrf_cookie.value()),
@@ -136,11 +131,9 @@ pub async fn login(
         );
     }
     if resp.status().as_u16() == StatusCode::BAD_REQUEST.as_u16() {
-        Ok(LoginResponse::Flow(
-            resp.json::<ViewableLoginFlow>().await?,
-        ))
-    } else if resp.status().as_u16() == StatusCode::OK.as_u16() {   
-        // ory_kratos_session cookie set above.       
+        Ok(LoginResponse::Flow(resp.json::<ViewableLoginFlow>().await?))
+    } else if resp.status().as_u16() == StatusCode::OK.as_u16() {
+        // ory_kratos_session cookie set above.
         Ok(LoginResponse::Success)
     } else if resp.status().as_u16() == StatusCode::GONE.as_u16() {
         let err = resp.json::<GenericError>().await?;
@@ -166,9 +159,7 @@ pub async fn login(
 #[component]
 pub fn LoginPage() -> impl IntoView {
     let login = Action::<Login, _>::server();
-    let login_flow = create_local_resource(|| (), |_| async move { 
-        init_login().await 
-    });
+    let login_flow = create_local_resource(|| (), |_| async move { init_login().await });
 
     let login_resp = create_rw_signal(None::<Result<LoginResponse, ServerFnError>>);
     // after user tries to login we update the signal resp.
@@ -200,10 +191,10 @@ pub fn LoginPage() -> impl IntoView {
                                 body.update(move|map|{_=map.insert(String::from("action"),action);});
                                     view!{
                                         <form id=ids::LOGIN_FORM_ID
-                                        on:click=move|e|{
+                                        on:submit=move|e|{
                                             e.prevent_default();
                                             e.stop_propagation();
-                                            login.dispatch(Login{body:body.get_untracked()});    
+                                            login.dispatch(Login{body:body.get_untracked()});
                                         }>
                                         {form_inner_html}
                                         {messages.map(|messages|{
