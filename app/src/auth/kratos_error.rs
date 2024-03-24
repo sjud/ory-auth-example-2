@@ -9,7 +9,7 @@ pub struct KratosError {
     debug: Option<String>,
 }
 
-<<<<<<< HEAD
+
 impl KratosError {
     pub fn to_err_msg(self) -> String {
         format!(
@@ -27,8 +27,7 @@ impl KratosError {
     }
 }
 
-=======
->>>>>>> e1b880d (idk)
+
 impl IntoView for KratosError {
     fn into_view(self) -> View {
         view!{

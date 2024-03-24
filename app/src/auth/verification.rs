@@ -91,13 +91,9 @@ pub async fn verify(
         axum::http::HeaderValue::from_str("private, no-cache, no-store, must-revalidate")?,
     );
     match resp.json::<ViewableVerificationFlow>().await {
-<<<<<<< HEAD
-        Ok(flow) => Ok(Some(flow)),
-=======
         Ok(flow) => {
             Ok(Some(flow))
         }
->>>>>>> e1b880d (idk)
         Err(err) => {
             let resp = client
                 .post(action)

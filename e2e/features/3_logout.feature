@@ -13,11 +13,6 @@ Feature: Logout
         And I check my email for the verification link and code
         And I copy the code onto the verification link page
         And I click login
-<<<<<<< HEAD
         And I re-enter valid credentials
-=======
-        And I enter valid credentials
-        And I am on the homepage
->>>>>>> e1b880d (idk)
         When I click logout
         Then I am logged out
