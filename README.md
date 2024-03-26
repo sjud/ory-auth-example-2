@@ -1,13 +1,26 @@
 # Leptos Auth Ory Integration (With Axum)
 This repo used [start-axum-workspace](https://github.com/leptos-rs/start-axum-workspace/) as a base.
 
-## How to read this example.
+## How to run the example.
 
-In the e2e crate in the project's root, each feature is labeled in order of implementation and describes the high level over view of the flow.
-<br>
-Each feature file corresponds to a feature, i.e login.feature -> login.rs which implements the integration with Ory Kratos.
-<br>
-Comments are written to explain the overall flow of kratos and how the integration works with leptos.
+Run in different terminal windows (for the best result)
+
+```sh
+cargo leptos serve
+```
+
+```sh
+docker compose up
+```
+
+```sh
+cargo test --test app_suite
+```
+
+This will run our server, set up our compose file (MailCrab, Ory Kratos, Ory Ketos) and run the test suite that walks through logging in, registration, verification etc.
+
+The e2e testing uses [chromiumoxide](https://crates.io/crates/chromiumoxide) and does things like monitor network requests, console messages, take screenshots during the flow and produces them when any of our feature tests fail. This can be a helpful starting point in debugging, etc.
+
 
 ## High Level Overview
 
@@ -85,7 +98,6 @@ mkcert -install localhost 127.0.0.1 ::1
 
 Copy your cert.pem, key.pem and rootCA.pem into this crate's root.
 
-## How this project's git workflow works
 
 ## Thoughts, Feedback, Criticism, Comments?
 Send me any of the above, I'm @sjud on leptos discord. I'm always looking to improve and make these examples more helpful for the community. So please let me know how I can do that. Thanks!

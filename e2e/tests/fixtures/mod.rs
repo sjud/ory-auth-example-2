@@ -1,8 +1,8 @@
 pub mod steps;
 use anyhow::{anyhow, Result};
 
-pub async fn wait_250() {
-    tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
+pub async fn wait() {
+    tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
 }
 
 use regex::Regex;

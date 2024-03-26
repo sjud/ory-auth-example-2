@@ -5,7 +5,7 @@ use cucumber::{given, then, when};
 use fake::locales::EN;
 use fake::{faker::internet::raw::FreeEmail, Fake};
 
-use super::wait_250;
+use super::wait;
 #[given("I pass")]
 pub async fn i_pass(_world: &mut AppWorld) -> Result<()> {
     tracing::info!("I pass and I trace.");
@@ -24,6 +24,7 @@ pub async fn check_url_for_homepage(world: &mut AppWorld) -> Result<()> {
     Ok(())
 }
 
+#[given("I click register")]
 #[when("I click register")]
 pub async fn click_register(world: &mut AppWorld) -> Result<()> {
     world.click(ids::REGISTER_BUTTON_ID).await?;
@@ -72,7 +73,50 @@ pub async fn fill_form_fields_with_credentials(world: &mut AppWorld) -> Result<(
         ));
     world.submit().await?;
     world.errors().await?;
-    wait_250().await;
+    wait().await;
+    Ok(())
+}
+
+#[given("I enter valid other credentials")]
+pub async fn fill_form_fields_with_other_credentials(world: &mut AppWorld) -> Result<()> {
+    let email = FreeEmail(EN).fake::<String>();
+    world
+        .set_field(ids::EMAIL_INPUT_ID, &email)
+        .await
+        .expect(&format!(
+            "To find element with id {} BUT ERROR : ",
+            ids::EMAIL_INPUT_ID
+        ));
+    world.clipboard.insert("other_email", email);
+    world
+        .set_field(ids::PASSWORD_INPUT_ID, "SuPeRsAfEpAsSwOrD1234!")
+        .await
+        .expect(&format!(
+            "To find element with id {} BUT ERROR : ",
+            ids::PASSWORD_INPUT_ID
+        ));
+    world.submit().await?;
+    world.errors().await?;
+    wait().await;
+    Ok(())
+}
+#[given("I re-enter other valid credentials")]
+pub async fn fill_form_fields_with_previous_other_credentials(world: &mut AppWorld) -> Result<()> {
+    let email = world
+        .clipboard
+        .get("other_email")
+        .cloned()
+        .ok_or(anyhow!("Can't find other credentials in clipboard"))?;
+    world
+        .set_field(ids::EMAIL_INPUT_ID, &email)
+        .await
+        .expect("set email field");
+    world
+        .set_field(ids::PASSWORD_INPUT_ID, "SuPeRsAfEpAsSwOrD1234!")
+        .await
+        .expect("set password field");
+    world.submit().await?;
+    world.errors().await?;
     Ok(())
 }
 
@@ -90,17 +134,11 @@ pub async fn fill_form_fields_with_previous_credentials(world: &mut AppWorld) ->
     world
         .set_field(ids::EMAIL_INPUT_ID, &email)
         .await
-        .expect(&format!(
-            "To find element with id {} as child of current element.",
-            ids::EMAIL_INPUT_ID
-        ));
+        .expect("set email field");
     world
         .set_field(ids::PASSWORD_INPUT_ID, "SuPeRsAfEpAsSwOrD1234!")
         .await
-        .expect(&format!(
-            "To find element with id {} as child of current element.",
-            ids::PASSWORD_INPUT_ID
-        ));
+        .expect("set password field");
     world.submit().await?;
     world.errors().await?;
     Ok(())
@@ -161,7 +199,7 @@ pub async fn copy_code_onto_verification_page(world: &mut AppWorld) -> Result<()
         .expect(&format!("Can't find {}", ids::VERFICATION_CODE_ID));
     world.submit().await?;
     world.click("continue").await?;
-    wait_250().await;
+    wait().await;
     Ok(())
 }
 
@@ -169,14 +207,15 @@ pub async fn copy_code_onto_verification_page(world: &mut AppWorld) -> Result<()
 #[given("I click login")]
 pub async fn click_login(world: &mut AppWorld) -> Result<()> {
     world.click(ids::LOGIN_BUTTON_ID).await?;
-    wait_250().await;
+    wait().await;
     Ok(())
 }
 
+#[given("I click logout")]
 #[when("I click logout")]
 pub async fn click_logout(world: &mut AppWorld) -> Result<()> {
     world.click(ids::LOGOUT_BUTTON_ID).await?;
-    wait_250().await;
+    wait().await;
     world.errors().await?;
     Ok(())
 }
@@ -215,4 +254,93 @@ pub async fn check_ory_kratos_cookie_exists(world: &mut AppWorld) -> Result<()> 
     } else {
         Ok(())
     }
+}
+
+#[when("I add example content to post")]
+pub async fn add_content_to_box(world: &mut AppWorld) -> Result<()> {
+    let content: Vec<String> = fake::faker::lorem::en::Words(0..10).fake();
+    let content = content.join(" ");
+    world.clipboard.insert("content", content.clone());
+    world
+        .set_field(ids::POST_POST_TEXT_AREA_ID, content)
+        .await?;
+    Ok(())
+}
+
+#[when("I click add post")]
+pub async fn add_content_to_internet(world: &mut AppWorld) -> Result<()> {
+    world.click(ids::POST_POST_SUBMIT_ID).await?;
+    wait().await;
+    Ok(())
+}
+
+#[then("I see my example content posted")]
+#[when("I see previous example content posted")]
+pub async fn see_my_content_posted(world: &mut AppWorld) -> Result<()> {
+    world.click(ids::POST_SHOW_LIST_BUTTON_ID).await?;
+    let content = world
+        .clipboard
+        .get("content")
+        .cloned()
+        .ok_or(anyhow!("Can't find content in clipboard"))?;
+    world.find_text(content).await?;
+    Ok(())
+}
+
+#[when("I see authorization error")]
+#[then("I see authorization error")]
+pub async fn see_auth_err(world: &mut AppWorld) -> Result<()> {
+    world.find_text(ids::AUTH_ERROR_MSG.to_string()).await?;
+    Ok(())
+}
+
+#[given("I add other email as editor")]
+#[when("I add other email as editor")]
+pub async fn add_other_email_as_editor(world: &mut AppWorld) -> Result<()> {
+    let other_email = world
+        .clipboard
+        .get("other_email")
+        .cloned()
+        .ok_or(anyhow!("Can't find other email."))?;
+    world
+        .set_field(ids::POST_ADD_EDITOR_INPUT_ID, other_email)
+        .await?;
+    Ok(())
+}
+#[given("I click add editor")]
+#[when("I click add editor")]
+pub async fn i_click_add_editor(world: &mut AppWorld) -> Result<()> {
+    world.click(ids::POST_EDIT_BUTTON_ID).await?;
+    Ok(())
+}
+#[then("other email is added as editor")]
+pub async fn check_that_other_email_is_added_as_editor(world: &mut AppWorld) -> Result<()> {
+    let other_email = world
+        .clipboard
+        .get("other_email")
+        .ok_or(anyhow!("Can't find other email."))?;
+    Err(anyhow!("How to do this?"))
+}
+
+#[when("I add new edit content to previous post")]
+pub async fn add_new_edit_content_to_previous(world: &mut AppWorld) -> Result<()> {
+    let edit_content: String = fake::faker::lorem::en::Paragraph(0..10).fake();
+    world.clipboard.insert("edit_content", edit_content.clone());
+    world
+        .set_field(ids::POST_EDIT_TEXT_AREA_ID, edit_content)
+        .await?;
+    Ok(())
+}
+
+#[then("I don't see old content")]
+pub async fn dont_see_old_content_posted(world: &mut AppWorld) -> Result<()> {
+    let content = world
+        .clipboard
+        .get("content")
+        .cloned()
+        .ok_or(anyhow!("Can't find content in clipboard"))?;
+    if world.find_text(content).await.is_ok() {
+        return Err(anyhow!("But I do see old content..."));
+    }
+    Ok(())
 }

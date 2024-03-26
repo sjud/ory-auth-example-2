@@ -1,10 +1,9 @@
 #![feature(never_type)]
 mod fixtures;
 
-use std::{collections::HashMap, sync::Arc, time::Duration};
-use chromiumoxide::cdp::browser_protocol::log::EventEntryAdded;
 use anyhow::anyhow;
 use anyhow::Result;
+use chromiumoxide::cdp::browser_protocol::log::EventEntryAdded;
 use chromiumoxide::cdp::js_protocol::runtime::EventConsoleApiCalled;
 use chromiumoxide::{
     browser::{Browser, BrowserConfig},
@@ -21,6 +20,7 @@ use futures::channel::mpsc::Sender;
 use futures_util::stream::StreamExt;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::sync::RwLock;
 use tokio_tungstenite::connect_async;
 use tracing::instrument;
@@ -66,7 +66,7 @@ impl RequestPair {
         } else {
             ("NO REQ".to_string(), "NO REQ".to_string())
         };
-        let (top_redirect_resp,_redirect_resp_headers) = if let Some(resp) = &self.redirect_resp {
+        let (top_redirect_resp, _redirect_resp_headers) = if let Some(resp) = &self.redirect_resp {
             (
                 format!("{} : {}", resp.status, resp.url),
                 format!("{} :\n {:#?}", resp.url, resp.headers),
@@ -185,23 +185,38 @@ async fn main() -> Result<()> {
                         if let Some(cookie_enum) = some_request_id {
                             match cookie_enum {
                                 CookieEnum::BeforeReq(req_id) => {
-                                    let cookies = page.get_cookies().await.unwrap_or_default()
-                                    .iter()
-                                    .map(|cookie| format!("name={}", cookie.name,))
-                                    .collect::<Vec<String>>()
-                                    .join("\n");
-                                    req_resp.write().await.get_mut(&req_id).unwrap().cookies_before_request = cookies;
+                                    let cookies = page
+                                        .get_cookies()
+                                        .await
+                                        .unwrap_or_default()
+                                        .iter()
+                                        .map(|cookie| format!("name={}", cookie.name,))
+                                        .collect::<Vec<String>>()
+                                        .join("\n");
+                                    req_resp
+                                        .write()
+                                        .await
+                                        .get_mut(&req_id)
+                                        .unwrap()
+                                        .cookies_before_request = cookies;
                                 }
                                 CookieEnum::AfterResp(req_id) => {
-                                    let cookies = page.get_cookies().await.unwrap_or_default()
-                                    .iter()
-                                    .map(|cookie| format!("name={}", cookie.name,))
-                                    .collect::<Vec<String>>()
-                                    .join("\n");
-                                    req_resp.write().await.get_mut(&req_id).unwrap().cookies_after_response = cookies;
+                                    let cookies = page
+                                        .get_cookies()
+                                        .await
+                                        .unwrap_or_default()
+                                        .iter()
+                                        .map(|cookie| format!("name={}", cookie.name,))
+                                        .collect::<Vec<String>>()
+                                        .join("\n");
+                                    req_resp
+                                        .write()
+                                        .await
+                                        .get_mut(&req_id)
+                                        .unwrap()
+                                        .cookies_after_response = cookies;
                                 }
                             }
-                            
                         } else {
                             break;
                         }
@@ -252,11 +267,11 @@ async fn main() -> Result<()> {
                                 req_id.clone(),
                                 RequestPair {
                                     req: None,
-                                    redirect_resp:None,
+                                    redirect_resp: None,
                                     resp: Some(event.response),
                                     cookies_before_request: "No cookie?".to_string(),
                                     cookies_after_response: "No cookie?".to_string(),
-                                    ts:std::time::Instant::now(),
+                                    ts: std::time::Instant::now(),
                                 },
                             );
                         }
@@ -322,11 +337,7 @@ async fn main() -> Result<()> {
 
                     std::fs::write("./network_output", network_output.as_bytes()).unwrap();
 
-                    let console_logs = world
-                    .console_logs
-                    .read()
-                    .await
-                    .join("\n");
+                    let console_logs = world.console_logs.read().await.join("\n");
 
                     std::fs::write("./console_logs", console_logs.as_bytes()).unwrap();
 
@@ -498,7 +509,19 @@ impl AppWorld {
         self.find_submit().await?.click().await?;
         Ok(())
     }
-
+    pub async fn find_text(&self, text: String) -> Result<Element> {
+        let selector: String = format!("//*[contains(text(), '{text}') or @*='{text}']");
+        let mut count = 0;
+        loop {
+            let result = self.page.find_xpath(&selector).await;
+            if result.is_err() && count < 4 {
+                count += 1;
+                tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+            } else {
+                return Ok(result?);
+            }
+        }
+    }
     pub async fn verify_route(&self, path: &'static str) -> Result<()> {
         let url = format!("{}{}", HOST, path);
         if let Some(current) = self.page.url().await? {

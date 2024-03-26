@@ -1,9 +1,8 @@
-use std::collections::HashMap;
 use super::*;
 use ory_kratos_client::models::LoginFlow;
 use ory_kratos_client::models::UiContainer;
 use ory_kratos_client::models::UiText;
-
+use std::collections::HashMap;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewableLoginFlow(LoginFlow);
@@ -64,7 +63,6 @@ pub async fn init_login() -> Result<LoginResponse, ServerFnError> {
     Ok(LoginResponse::Flow(flow))
 }
 
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum LoginResponse {
     Flow(ViewableLoginFlow),
@@ -81,15 +79,12 @@ impl IntoView for LoginResponse {
 
 #[tracing::instrument]
 #[server]
-pub async fn login(
-    body: HashMap<String, String>,
-) -> Result<LoginResponse, ServerFnError> {
+pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, ServerFnError> {
+    use http::StatusCode;
     use ory_kratos_client::models::error_browser_location_change_required::ErrorBrowserLocationChangeRequired;
     use ory_kratos_client::models::generic_error::GenericError;
-    use ory_kratos_client::models::successful_native_login::SuccessfulNativeLogin;
-    use http::StatusCode;
 
-    let pool = leptos_axum::extract::<axum::Extension<sqlx::SqlitePool>>().await?;
+    let _pool = leptos_axum::extract::<axum::Extension<sqlx::SqlitePool>>().await?;
 
     let mut body = body;
     let action = body
@@ -133,11 +128,9 @@ pub async fn login(
         );
     }
     if resp.status().as_u16() == StatusCode::BAD_REQUEST.as_u16() {
-        Ok(LoginResponse::Flow(
-            resp.json::<ViewableLoginFlow>().await?,
-        ))
-    } else if resp.status().as_u16() == StatusCode::OK.as_u16() {   
-        // ory_kratos_session cookie set above. 
+        Ok(LoginResponse::Flow(resp.json::<ViewableLoginFlow>().await?))
+    } else if resp.status().as_u16() == StatusCode::OK.as_u16() {
+        // ory_kratos_session cookie set above.
         Ok(LoginResponse::Success)
     } else if resp.status().as_u16() == StatusCode::GONE.as_u16() {
         let err = resp.json::<GenericError>().await?;
@@ -165,7 +158,6 @@ pub fn LoginPage() -> impl IntoView {
     let login = Action::<Login, _>::server();
     let login_flow = create_local_resource(|| (), |_| async move { init_login().await });
 
-
     let login_resp = create_rw_signal(None::<Result<LoginResponse, ServerFnError>>);
     // after user tries to login we update the signal resp.
     create_effect(move |_| {
@@ -190,7 +182,7 @@ pub fn LoginPage() -> impl IntoView {
                 match resp {
                     Ok(resp) => {
                         match resp {
-                            LoginResponse::Flow(ViewableLoginFlow(LoginFlow{ui:box UiContainer{nodes,action,method,messages},..})) => {
+                            LoginResponse::Flow(ViewableLoginFlow(LoginFlow{ui:box UiContainer{nodes,action,messages,..},..})) => {
                                 let form_inner_html = nodes.into_iter().map(|node|kratos_html(node,body)).collect_view();
                                 leptos::logging::log!("login action : {action}");
                                 body.update(move|map|{_=map.insert(String::from("action"),action);});

@@ -91,10 +91,8 @@ pub async fn verify(
         axum::http::HeaderValue::from_str("private, no-cache, no-store, must-revalidate")?,
     );
     match resp.json::<ViewableVerificationFlow>().await {
-        Ok(flow) => {
-            Ok(Some(flow))
-        }
-        Err(err) => {
+        Ok(flow) => Ok(Some(flow)),
+        Err(_err) => {
             let resp = client
                 .post(action)
                 .header("x-csrf-token", csrf_token)
@@ -118,9 +116,7 @@ pub fn VerificationPage() -> impl IntoView {
     let params_map = use_query_map();
     let init_verification = create_local_resource(
         move || params_map().get("flow").cloned().unwrap_or_default(),
-        |flow_id| async move { 
-            init_verification(flow_id).await 
-        },
+        |flow_id| async move { init_verification(flow_id).await },
     );
     let verfication_resp =
         create_rw_signal(None::<Result<Option<ViewableVerificationFlow>, ServerFnError>>);

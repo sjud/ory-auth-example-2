@@ -53,7 +53,11 @@ pub fn ErrorTemplate(
     cfg_if! { if #[cfg(feature="ssr")] {
         let response = use_context::<ResponseOptions>();
         if let Some(response) = response {
-            response.set_status(errors[0].status_code());
+            if let Some(error) = errors.get(0) {
+                response.set_status(error.status_code());
+            } else {
+                response.set_status(StatusCode::INTERNAL_SERVER_ERROR)
+            }
         }
     }}
 

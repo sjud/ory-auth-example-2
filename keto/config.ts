@@ -1,14 +1,20 @@
-import { Namespace, Context, SubjectSet } from "@ory/keto-namespace-types"
+import { Namespace, Context } from "@ory/keto-namespace-types"
 
-class User implements Namespace{
+class Users {}
+
+
+class Posts implements Namespace {
     related: {
-        // related_category : RelatedCategory[]
-        // where RelatedCategory impl NameSpace...
+        owners : Users[],
+        editors: Users[],
     }
     permits = {
-        // see: (ctx:Context):boolean =>
-        //  this.related.related_category.includes(ctx.Subject)
-        //
+        edit: (ctx:Context):boolean => 
+            this.related.owners.includes(ctx.Subject) ||
+                this.related.editors.includes(ctx.Subject),
+        view: (ctx:Context):boolean => this.permits.edit(ctx),
+        add_editor: (ctx:Context):boolean =>
+            this.related.owners.includes(ctx.Subject)
     }
 }
 

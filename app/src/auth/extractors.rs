@@ -2,6 +2,11 @@ use axum::{async_trait, extract::FromRequestParts, RequestPartsExt};
 use axum_extra::extract::CookieJar;
 use http::request::Parts;
 use ory_kratos_client::models::session::Session;
+use sqlx::SqlitePool;
+
+use crate::business_logic::database_calls::UserRow;
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct ExtractSession(pub Session);
 
 #[async_trait]
@@ -49,5 +54,38 @@ where
             .await
             .map_err(|err| format!("Error getting json from body err:{:#?}", err).to_string())?;
         Ok(Self(session))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ExtractUserRow(pub UserRow);
+
+#[async_trait]
+impl<S> FromRequestParts<S> for ExtractUserRow
+where
+    S: Send + Sync,
+{
+    type Rejection = String;
+
+    #[tracing::instrument(err(Debug), skip_all)]
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let identity_id = parts
+            .extract::<ExtractSession>()
+            .await?
+            .0
+            .identity
+            .ok_or("No identity")?
+            .id;
+        let pool = parts
+            .extract::<axum::Extension<SqlitePool>>()
+            .await
+            .map_err(|err| format!("{err:#?}"))?
+            .0;
+        let user =
+            crate::business_logic::database_calls::read_user_by_identity_id(&pool, &identity_id)
+                .await
+                .map_err(|err| format!("{err:#?}"))?;
+
+        Ok(Self(user))
     }
 }

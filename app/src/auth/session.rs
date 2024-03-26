@@ -19,7 +19,7 @@ pub async fn session_who_am_i() -> Result<ViewableSession, ServerFnError> {
 
 #[component]
 pub fn HasSession() -> impl IntoView {
-    let check_session = Action::<SessionWhoAmI,_>::server();
+    let check_session = Action::<SessionWhoAmI, _>::server();
     view! {
         <button on:click=move|_|check_session.dispatch(SessionWhoAmI{})>
             Check Session Status

@@ -12,9 +12,11 @@ pub mod login;
 pub use login::LoginPage;
 pub mod session;
 pub use session::HasSession;
-#[cfg(feature="ssr")]
+#[cfg(feature = "ssr")]
 pub mod extractors;
 pub mod kratos_error;
 pub use kratos_error::KratosErrorPage;
 pub mod logout;
 pub use logout::LogoutButton;
+#[cfg(feature = "ssr")]
+pub mod keto_utils;

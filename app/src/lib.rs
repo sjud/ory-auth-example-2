@@ -11,8 +11,8 @@ pub mod auth;
 pub mod business_logic;
 pub mod error_template;
 use auth::*;
-use leptos_use::utils::FromToStringCodec;
-
+pub mod posts;
+pub use posts::*;
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct IsLoggedIn(RwSignal<bool>);
 #[component]
@@ -48,7 +48,7 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
-    let clear_cookies = Action::<ClearCookies,_>::server();
+    let clear_cookies = Action::<ClearCookies, _>::server();
     view! {
         <h1>"Welcome to Leptos!"</h1>
         <div>
@@ -66,11 +66,14 @@ fn HomePage() -> impl IntoView {
         <div>
             <HasSession/>
         </div>
+        <div>
+            <PostPage/>
+        </div>
     }
 }
 
-#[cfg(feature="ssr")]
-pub async fn clear_cookies_inner() -> Result<(),ServerFnError> {
+#[cfg(feature = "ssr")]
+pub async fn clear_cookies_inner() -> Result<(), ServerFnError> {
     let opts = expect_context::<leptos_axum::ResponseOptions>();
 
     let cookie_jar = leptos_axum::extract::<axum_extra::extract::CookieJar>().await?;
@@ -97,8 +100,7 @@ pub async fn clear_cookies_inner() -> Result<(),ServerFnError> {
 
 #[tracing::instrument]
 #[server]
-pub async fn clear_cookies() -> Result<(),ServerFnError> {
+pub async fn clear_cookies() -> Result<(), ServerFnError> {
     clear_cookies_inner().await?;
     Ok(())
 }
-

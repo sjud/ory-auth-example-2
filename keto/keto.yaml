@@ -5,8 +5,9 @@ log:
 
 namespaces:
   - id: 0
-    name: videos
-
+    name: Posts
+  - id: 1
+    name: Users
 dsn: memory
 
 serve:

@@ -32,6 +32,7 @@ wasm-bindgen = { workspace = true, optional = true}
 web-sys = { workspace = true}
 
 sqlx = { workspace = true, optional = true}
+
 [features]
 default = []
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate","dep:wasm-bindgen"]

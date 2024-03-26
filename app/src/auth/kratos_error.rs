@@ -1,5 +1,4 @@
 use super::*;
-use ory_kratos_client::models::flow_error::FlowError;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct KratosError {
@@ -8,7 +7,6 @@ pub struct KratosError {
     reason: Option<String>,
     debug: Option<String>,
 }
-
 
 impl KratosError {
     pub fn to_err_msg(self) -> String {
@@ -27,7 +25,6 @@ impl KratosError {
     }
 }
 
-
 impl IntoView for KratosError {
     fn into_view(self) -> View {
         view!{
@@ -41,6 +38,8 @@ impl IntoView for KratosError {
 
 #[server]
 pub async fn fetch_error(id: String) -> Result<KratosError, ServerFnError> {
+    use ory_kratos_client::models::flow_error::FlowError;
+
     let client = reqwest::ClientBuilder::new()
         .redirect(reqwest::redirect::Policy::none())
         .build()?;

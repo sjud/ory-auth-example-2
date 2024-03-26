@@ -26,6 +26,7 @@ services:
       - "./keto:/etc/config/keto"
     ports:
       - "4466:4466"
+      - "4467:4467"
     networks:
       - mynetwork
 

@@ -101,6 +101,10 @@ pub async fn register(
     let action = body
         .remove("action")
         .ok_or(ServerFnError::new("Can't find action on body."))?;
+    let email = body
+        .get("traits.email")
+        .cloned()
+        .ok_or(ServerFnError::new("Can't find traits.email on body."))?;
     let cookie_jar = leptos_axum::extract::<axum_extra::extract::CookieJar>().await?;
     let csrf_cookie = cookie_jar
         .iter()
@@ -143,14 +147,10 @@ pub async fn register(
         ))
     } else if resp.status().as_u16() == StatusCode::OK.as_u16() {
         // get identity, session, session token
-        let SuccessfulNativeRegistration {
-            continue_with,
-            identity,
-            session,
-            session_token,
-        } = resp.json::<SuccessfulNativeRegistration>().await?;
+        let SuccessfulNativeRegistration { identity, .. } =
+            resp.json::<SuccessfulNativeRegistration>().await?;
         let identity_id = identity.id;
-        crate::business_logic::database_calls::create_user(&pool, identity_id).await?;
+        crate::business_logic::database_calls::create_user(&pool, &identity_id, &email).await?;
         //discard all? what about session_token? I guess we aren't allowing logging in after registration without verification..
         Ok(RegistrationResponse::Success)
     } else if resp.status().as_u16() == StatusCode::GONE.as_u16() {
@@ -180,9 +180,7 @@ pub fn RegistrationPage() -> impl IntoView {
 
     // when we hit the page initiate a flow with kratos and get back data for ui renering.
     let registration_flow =
-        create_local_resource(|| (), |_| async move { 
-            init_registration().await 
-        });
+        create_local_resource(|| (), |_| async move { init_registration().await });
     // Is none if user hasn't submitted data.
     let register_resp = create_rw_signal(None::<Result<RegistrationResponse, ServerFnError>>);
     // after user tries to register we update the signal resp.
