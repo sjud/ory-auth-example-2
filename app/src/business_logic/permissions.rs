@@ -9,7 +9,7 @@ pub async fn add_user_as_editor(
     new_editor_user_id: &String,
 ) -> Result<(), leptos::ServerFnError> {
     crate::auth::keto_utils::create_relationship(CreateRelationshipBody {
-        namespace: Some("Posts".to_string()),
+        namespace: Some("Post".to_string()),
         object: Some(post_id.clone()),
         relation: Some("editors".to_string()),
         subject_id: Some(new_editor_user_id.clone()),
@@ -17,16 +17,16 @@ pub async fn add_user_as_editor(
     })
     .await
 }
-#[tracing::instrument]
+#[tracing::instrument(ret)]
 pub async fn add_owner_post_permission(
     post_id: &String,
-    owner_user_id: &String,
+    user_id: &String,
 ) -> Result<(), leptos::ServerFnError> {
     crate::auth::keto_utils::create_relationship(CreateRelationshipBody {
-        namespace: Some("Posts".to_string()),
+        namespace: Some("Post".to_string()),
         object: Some(post_id.clone()),
         relation: Some("owners".to_string()),
-        subject_id: Some(owner_user_id.clone()),
+        subject_id: Some(user_id.clone()),
         subject_set: None,
     })
     .await
@@ -38,7 +38,7 @@ pub async fn user_can_edit_post(
     user_id: &String,
 ) -> Result<(), leptos::ServerFnError> {
     if !crate::auth::keto_utils::check_permission(PostCheckPermissionBody {
-        namespace: Some("Posts".to_string()),
+        namespace: Some("Post".to_string()),
         object: Some(post_id.clone()),
         relation: Some("edit".to_string()),
         subject_id: Some(user_id.clone()),
@@ -52,13 +52,13 @@ pub async fn user_can_edit_post(
     }
 }
 
-#[tracing::instrument(err)]
+#[tracing::instrument(ret)]
 pub async fn user_can_view_post(
     post_id: &String,
     user_id: &String,
 ) -> Result<(), leptos::ServerFnError> {
-    if !crate::auth::keto_utils::check_permission(PostCheckPermissionBody {
-        namespace: Some("Posts".to_string()),
+    if crate::auth::keto_utils::check_permission(PostCheckPermissionBody {
+        namespace: Some("Post".to_string()),
         object: Some(post_id.clone()),
         relation: Some("view".to_string()),
         subject_id: Some(user_id.clone()),
@@ -66,9 +66,9 @@ pub async fn user_can_view_post(
     })
     .await?
     {
-        Err(leptos::ServerFnError::new(ids::AUTH_ERROR_MSG))
-    } else {
         Ok(())
+    } else {
+        Err(leptos::ServerFnError::new(ids::AUTH_ERROR_MSG))
     }
 }
 
@@ -78,7 +78,7 @@ pub async fn user_can_delete_post(
     user_id: &String,
 ) -> Result<(), leptos::ServerFnError> {
     if !crate::auth::keto_utils::check_permission(PostCheckPermissionBody {
-        namespace: Some("Posts".to_string()),
+        namespace: Some("Post".to_string()),
         object: Some(post_id.clone()),
         relation: Some("delete".to_string()),
         subject_id: Some(user_id.clone()),

@@ -18,18 +18,6 @@ services:
       - "4434:4434"
     networks:
       - mynetwork
-
-  ketos:
-    image: oryd/keto:v0.12.0
-    command: serve --config /etc/config/keto/keto.yaml
-    volumes:
-      - "./keto:/etc/config/keto"
-    ports:
-      - "4466:4466"
-      - "4467:4467"
-    networks:
-      - mynetwork
-
   
 networks:
   mynetwork:

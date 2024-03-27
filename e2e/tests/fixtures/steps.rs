@@ -283,7 +283,8 @@ pub async fn see_my_content_posted(world: &mut AppWorld) -> Result<()> {
         .get("content")
         .cloned()
         .ok_or(anyhow!("Can't find content in clipboard"))?;
-    world.find_text(content).await?;
+    let found_text = world.find_text(content).await?;
+    tracing::info!("{found_text:#?}");
     Ok(())
 }
 
@@ -324,7 +325,7 @@ pub async fn check_that_other_email_is_added_as_editor(world: &mut AppWorld) -> 
 
 #[when("I add new edit content to previous post")]
 pub async fn add_new_edit_content_to_previous(world: &mut AppWorld) -> Result<()> {
-    let edit_content: String = fake::faker::lorem::en::Paragraph(0..10).fake();
+    let edit_content: String = fake::faker::lorem::en::Paragraph(5..10).fake();
     world.clipboard.insert("edit_content", edit_content.clone());
     world
         .set_field(ids::POST_EDIT_TEXT_AREA_ID, edit_content)

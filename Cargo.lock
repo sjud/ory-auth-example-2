@@ -139,7 +139,6 @@ dependencies = [
  "leptos_axum",
  "leptos_meta",
  "leptos_router",
- "ory-keto-client",
  "ory-kratos-client",
  "reqwest",
  "serde",
@@ -2678,20 +2677,6 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
-]
-
-[[package]]
-name = "ory-keto-client"
-version = "0.11.0-alpha.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4944f4ba9fcb6e52c98e1ed8b7d9a7a9be54ce466eb15e3fe96da254426aae23"
-dependencies = [
- "num-traits",
- "reqwest",
- "serde",
- "serde_derive",
- "serde_json",
- "url",
 ]
 
 [[package]]

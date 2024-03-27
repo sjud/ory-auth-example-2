@@ -36,3 +36,24 @@ async fn create_posts(pool: &SqlitePool) -> Result<(), Error> {
     .await?;
     Ok(())
 }
+
+async fn create_post_permissions(pool: &SqlitePool) -> Result<(), Error> {
+    sqlx::query(
+        "
+    CREATE TABLE IF NOT EXISTS post_permissions (
+        permission_id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        read BOOL NOT NULL,
+        write BOOL NOT NULL,
+        edit BOOL NOT NULL,
+        delete BOOL NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(user_id),
+        FOREIGN KEY (post_id) REFERENCES posts(post_id)
+    );",
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+

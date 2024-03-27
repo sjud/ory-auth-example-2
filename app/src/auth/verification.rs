@@ -92,20 +92,7 @@ pub async fn verify(
     );
     match resp.json::<ViewableVerificationFlow>().await {
         Ok(flow) => Ok(Some(flow)),
-        Err(_err) => {
-            let resp = client
-                .post(action)
-                .header("x-csrf-token", csrf_token)
-                .header("content-type", "application/json")
-                .header(
-                    "cookie",
-                    format!("{}={}", csrf_cookie.name(), csrf_cookie.value()),
-                )
-                .body(serde_json::to_string(&body)?)
-                .send()
-                .await?;
-            Ok(None)
-        }
+        Err(_err) => Ok(None),
     }
 }
 
