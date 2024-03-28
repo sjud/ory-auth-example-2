@@ -28,8 +28,8 @@ impl IntoView for RegistrationResponse {
         }
     }
 }
-#[server]
 #[tracing::instrument]
+#[server]
 pub async fn init_registration() -> Result<RegistrationResponse, ServerFnError> {
     let client = reqwest::ClientBuilder::new()
         .cookie_store(true)
@@ -150,7 +150,7 @@ pub async fn register(
         let SuccessfulNativeRegistration { identity, .. } =
             resp.json::<SuccessfulNativeRegistration>().await?;
         let identity_id = identity.id;
-        crate::business_logic::database_calls::create_user(&pool, &identity_id, &email).await?;
+        crate::database_calls::create_user(&pool, &identity_id, &email).await?;
         //discard all? what about session_token? I guess we aren't allowing logging in after registration without verification..
         Ok(RegistrationResponse::Success)
     } else if resp.status().as_u16() == StatusCode::GONE.as_u16() {

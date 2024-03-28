@@ -11,7 +11,7 @@ impl IntoView for ViewableLoginFlow {
         format!("{:?}", self).into_view()
     }
 }
-#[tracing::instrument(ret)]
+#[tracing::instrument]
 #[server]
 pub async fn init_login() -> Result<LoginResponse, ServerFnError> {
     let client = reqwest::ClientBuilder::new()
@@ -90,7 +90,6 @@ pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, Serve
     let action = body
         .remove("action")
         .ok_or(ServerFnError::new("Can't find action on body."))?;
-    tracing::debug!("login action : {action}");
     let cookie_jar = leptos_axum::extract::<axum_extra::extract::CookieJar>().await?;
     let csrf_cookie = cookie_jar
         .iter()
@@ -121,7 +120,6 @@ pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, Serve
         axum::http::HeaderValue::from_str("private, no-cache, no-store, must-revalidate")?,
     );
     for value in resp.headers().get_all("set-cookie").iter() {
-        tracing::debug!("SET COOKIE : {value:#?}");
         opts.append_header(
             axum::http::HeaderName::from_static("set-cookie"),
             axum::http::HeaderValue::from_str(value.to_str()?)?,
@@ -184,7 +182,6 @@ pub fn LoginPage() -> impl IntoView {
                         match resp {
                             LoginResponse::Flow(ViewableLoginFlow(LoginFlow{ui:box UiContainer{nodes,action,messages,..},..})) => {
                                 let form_inner_html = nodes.into_iter().map(|node|kratos_html(node,body)).collect_view();
-                                leptos::logging::log!("login action : {action}");
                                 body.update(move|map|{_=map.insert(String::from("action"),action);});
                                     view!{
                                         <form id=ids::LOGIN_FORM_ID

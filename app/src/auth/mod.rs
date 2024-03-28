@@ -18,5 +18,3 @@ pub mod kratos_error;
 pub use kratos_error::KratosErrorPage;
 pub mod logout;
 pub use logout::LogoutButton;
-#[cfg(feature = "ssr")]
-pub mod keto_utils;

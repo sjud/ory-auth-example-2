@@ -4,7 +4,7 @@ use http::request::Parts;
 use ory_kratos_client::models::session::Session;
 use sqlx::SqlitePool;
 
-use crate::business_logic::database_calls::UserRow;
+use crate::database_calls::UserRow;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExtractSession(pub Session);
@@ -82,7 +82,7 @@ where
             .map_err(|err| format!("{err:#?}"))?
             .0;
         let user =
-            crate::business_logic::database_calls::read_user_by_identity_id(&pool, &identity_id)
+            crate::database_calls::read_user_by_identity_id(&pool, &identity_id)
                 .await
                 .map_err(|err| format!("{err:#?}"))?;
 

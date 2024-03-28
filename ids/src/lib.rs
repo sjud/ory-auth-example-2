@@ -44,9 +44,9 @@ pub static POST_ADD_EDITOR_BUTTON_ID: &'static str = "post_add_editor_button_id"
 pub static POST_ADD_EDITOR_INPUT_ID: &'static str = "add_editor_input_id";
 pub static POST_ADD_EDITOR_SUBMIT_ID: &'static str = "post_add_editor_submit_id";
 pub static POST_DELETE_ID: &'static str = "post_delete_id";
-pub static POST_EDIT_BUTTON_ID: &'static str = "post_edit_button_id";
 pub static POST_EDIT_TEXT_AREA_ID: &'static str = "post_edit_text_area_id";
 pub static POST_EDIT_SUBMIT_ID: &'static str = "post_edit_submit_id";
 pub static POST_SHOW_LIST_BUTTON_ID: &'static str = "post_show_list_button_id";
 
-pub static AUTH_ERROR_MSG: &'static str = "YOU CAN'T DO THAT. HA. HA.";
+
+pub static CLEAR_COOKIES_BUTTON_ID:&'static str = "clear_cookies_button_id";

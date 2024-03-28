@@ -11,14 +11,29 @@ pub mod fileserv;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::new("debug,reqwest=error,hyper=error,h2=error"))
-        .compact()
+        .with_env_filter(EnvFilter::new("debug,reqwest=error,sqlx=error,hyper=error,h2=error"))
+        .pretty()
         .init();
+     
+    // we get a new db every restart.
+    
+    _ = std::fs::remove_file("./app.db");
+    _ = std::fs::remove_file("./app.db-shm");
+    _ = std::fs::remove_file("./app.db-wal");
 
-    let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
-    app::business_logic::migrations::migrate(&pool)
-        .await
-        .unwrap();
+
+    std::process::Command::new("sqlx")
+        .args(["db","create","--database-url","sqlite:app.db"])
+        .status()
+        .expect("sqlx to exist on user machine");
+    
+    std::process::Command::new("sqlx")
+        .args(["migrate","run","--database-url","sqlite:app.db"])
+        .status()
+        .expect("sqlite3 to exist on user machine");
+
+
+    let pool = sqlx::SqlitePool::connect("sqlite:app.db").await.unwrap();
 
     let config =
         RustlsConfig::from_pem_file(PathBuf::from("./cert.pem"), PathBuf::from("./key.pem"))

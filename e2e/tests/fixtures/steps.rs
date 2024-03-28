@@ -1,6 +1,8 @@
 use crate::{AppWorld, EMAIL_ID_MAP};
 use anyhow::anyhow;
 use anyhow::{Ok, Result};
+use chromiumoxide::cdp::browser_protocol::input::TimeSinceEpoch;
+use chromiumoxide::cdp::browser_protocol::network::{CookieParam, DeleteCookiesParams};
 use cucumber::{given, then, when};
 use fake::locales::EN;
 use fake::{faker::internet::raw::FreeEmail, Fake};
@@ -101,6 +103,7 @@ pub async fn fill_form_fields_with_other_credentials(world: &mut AppWorld) -> Re
     Ok(())
 }
 #[given("I re-enter other valid credentials")]
+#[when("I re-enter other valid credentials")]
 pub async fn fill_form_fields_with_previous_other_credentials(world: &mut AppWorld) -> Result<()> {
     let email = world
         .clipboard
@@ -147,6 +150,34 @@ pub async fn fill_form_fields_with_previous_credentials(world: &mut AppWorld) ->
 #[then("I am on the verify email page")]
 pub async fn check_url_to_be_verify_page(world: &mut AppWorld) -> Result<()> {
     world.find(ids::VERIFY_EMAIL_DIV_ID).await?;
+    Ok(())
+}
+#[given("I check my other email for the verification link and code")]
+#[when("I check my other email for the verification link and code")]
+pub async fn check_email_other_for_verification_link_and_code(world: &mut AppWorld) -> Result<()> {
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    // we've stored the email with the id
+    // so we get the id with our email from our clipboard
+    let email = world
+        .clipboard
+        .get("other_email")
+        .ok_or(anyhow!("email not found in clipboard"))?;
+    let id = EMAIL_ID_MAP
+        .read()
+        .await
+        .get(email)
+        .ok_or(anyhow!("{email} not found in EMAIL_ID_MAP"))?
+        .clone();
+    // then we use the id to get the message from mailcrab
+    let body = reqwest::get(format!("http://127.0.0.1:1080/api/message/{}/body", id))
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    let (code, link) = super::extract_code_and_link(&body)?;
+    world.clipboard.insert("code", code);
+    world.clipboard.insert("link", link);
     Ok(())
 }
 
@@ -220,18 +251,21 @@ pub async fn click_logout(world: &mut AppWorld) -> Result<()> {
     Ok(())
 }
 
-#[then("I am logged out")]
+#[tracing::instrument]
 #[given("I am logged out")]
+#[then("I am logged out")]
 pub async fn check_ory_kratos_cookie_doesnt_exist(world: &mut AppWorld) -> Result<()> {
-    if !world
-        .page
-        .get_cookies()
-        .await?
+    let cookies = world
+    .page
+    .get_cookies()
+    .await?;
+    if !cookies
         .iter()
         .filter(|c| c.name.contains("ory_kratos_session"))
         .collect::<Vec<_>>()
         .is_empty()
     {
+        tracing::error!("{cookies:#?}");
         Err(anyhow!("Ory kratos cookie exists."))
     } else {
         Ok(())
@@ -256,7 +290,8 @@ pub async fn check_ory_kratos_cookie_exists(world: &mut AppWorld) -> Result<()> 
     }
 }
 
-#[when("I add example content to post")]
+#[given("I add example post")]
+#[when("I add example post")]
 pub async fn add_content_to_box(world: &mut AppWorld) -> Result<()> {
     let content: Vec<String> = fake::faker::lorem::en::Words(0..10).fake();
     let content = content.join(" ");
@@ -264,18 +299,14 @@ pub async fn add_content_to_box(world: &mut AppWorld) -> Result<()> {
     world
         .set_field(ids::POST_POST_TEXT_AREA_ID, content)
         .await?;
-    Ok(())
-}
-
-#[when("I click add post")]
-pub async fn add_content_to_internet(world: &mut AppWorld) -> Result<()> {
     world.click(ids::POST_POST_SUBMIT_ID).await?;
-    wait().await;
     Ok(())
 }
 
-#[then("I see my example content posted")]
-#[when("I see previous example content posted")]
+
+#[given("I see example content posted")]
+#[then("I see example content posted")]
+#[when("I see example content posted")]
 pub async fn see_my_content_posted(world: &mut AppWorld) -> Result<()> {
     world.click(ids::POST_SHOW_LIST_BUTTON_ID).await?;
     let content = world
@@ -283,15 +314,18 @@ pub async fn see_my_content_posted(world: &mut AppWorld) -> Result<()> {
         .get("content")
         .cloned()
         .ok_or(anyhow!("Can't find content in clipboard"))?;
-    let found_text = world.find_text(content).await?;
-    tracing::info!("{found_text:#?}");
+    world.errors().await?;
+    let _ = world.find_text(content).await?;
     Ok(())
 }
 
-#[when("I see authorization error")]
-#[then("I see authorization error")]
+#[when("I see error")]
+#[then("I see error")]
 pub async fn see_auth_err(world: &mut AppWorld) -> Result<()> {
-    world.find_text(ids::AUTH_ERROR_MSG.to_string()).await?;
+    wait().await;
+    if world.errors().await.is_ok(){
+        return Err(anyhow!("Expecting an error."));
+    }
     Ok(())
 }
 
@@ -306,33 +340,37 @@ pub async fn add_other_email_as_editor(world: &mut AppWorld) -> Result<()> {
     world
         .set_field(ids::POST_ADD_EDITOR_INPUT_ID, other_email)
         .await?;
+    world.click(ids::POST_ADD_EDITOR_SUBMIT_ID).await?;
     Ok(())
-}
-#[given("I click add editor")]
-#[when("I click add editor")]
-pub async fn i_click_add_editor(world: &mut AppWorld) -> Result<()> {
-    world.click(ids::POST_EDIT_BUTTON_ID).await?;
-    Ok(())
-}
-#[then("other email is added as editor")]
-pub async fn check_that_other_email_is_added_as_editor(world: &mut AppWorld) -> Result<()> {
-    let other_email = world
-        .clipboard
-        .get("other_email")
-        .ok_or(anyhow!("Can't find other email."))?;
-    Err(anyhow!("How to do this?"))
 }
 
-#[when("I add new edit content to previous post")]
+
+#[when("I logout")]
+pub async fn i_logout(world: &mut AppWorld) -> Result<()> {
+    world.click(ids::LOGOUT_BUTTON_ID).await?;
+    Ok(())
+}
+#[when("I edit example post")]
 pub async fn add_new_edit_content_to_previous(world: &mut AppWorld) -> Result<()> {
-    let edit_content: String = fake::faker::lorem::en::Paragraph(5..10).fake();
+    let edit_content: Vec<String> = fake::faker::lorem::en::Words(0..10).fake();
+    let edit_content = edit_content.join(" ");
     world.clipboard.insert("edit_content", edit_content.clone());
     world
         .set_field(ids::POST_EDIT_TEXT_AREA_ID, edit_content)
         .await?;
+    world.click(ids::POST_EDIT_SUBMIT_ID).await?;
     Ok(())
 }
-
+#[then("I see my new content posted")]
+pub async fn new_content_boom_ba_da_boom(world:&mut AppWorld) -> Result<()> {
+    let content = world
+        .clipboard
+        .get("edit_content")
+        .cloned()
+        .ok_or(anyhow!("Can't find content in clipboard"))?;
+    world.find_text(content).await?;
+    Ok(())
+}
 #[then("I don't see old content")]
 pub async fn dont_see_old_content_posted(world: &mut AppWorld) -> Result<()> {
     let content = world
@@ -343,5 +381,41 @@ pub async fn dont_see_old_content_posted(world: &mut AppWorld) -> Result<()> {
     if world.find_text(content).await.is_ok() {
         return Err(anyhow!("But I do see old content..."));
     }
+    Ok(())
+}
+
+#[given("I click show post list")]
+#[when("I click show post list")]
+pub async fn i_click_show_post_list(world: &mut AppWorld) -> Result<()> {
+    world.click(ids::POST_SHOW_LIST_BUTTON_ID).await?;
+    Ok(())
+}
+
+#[given("I clear cookies")]
+pub async fn i_clear_cookies(world:&mut AppWorld) -> Result<()> {
+    let cookies = world.page.get_cookies().await?
+        .into_iter()
+        .map(|cookie|
+            DeleteCookiesParams::from_cookie(
+            &CookieParam {
+                name: cookie.name,
+                value: cookie.value,
+                url: None, // Since there's no direct field for URL, it's set as None
+                domain: Some(cookie.domain),
+                path: Some(cookie.path),
+                secure: Some(cookie.secure),
+                http_only: Some(cookie.http_only),
+                same_site: cookie.same_site,
+                // Assuming you have a way to convert f64 expires to TimeSinceEpoch
+                expires: None,
+                priority: Some(cookie.priority),
+                same_party: Some(cookie.same_party),
+                source_scheme: Some(cookie.source_scheme),
+                source_port: Some(cookie.source_port),
+                partition_key: cookie.partition_key,
+                // Note: `partition_key_opaque` is omitted since it doesn't have a direct mapping
+            }))
+            .collect();
+    world.page.delete_cookies(cookies).await?;
     Ok(())
 }

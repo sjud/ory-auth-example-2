@@ -23,7 +23,6 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::sync::RwLock;
 use tokio_tungstenite::connect_async;
-use tracing::instrument;
 use uuid::Uuid;
 static EMAIL_ID_MAP: Lazy<RwLock<HashMap<String, String>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
@@ -416,6 +415,7 @@ impl AppWorld {
         })
     }
 
+    
     pub async fn errors(&mut self) -> Result<()> {
         if let Ok(error) = self.find(ids::ERROR_ERROR_ID).await {
             Err(anyhow!("{}", error.inner_text().await.unwrap().unwrap()))
@@ -449,13 +449,12 @@ impl AppWorld {
         }
     }
 
-    pub async fn find_all(&mut self, id: &'static str) -> Result<ElementList> {
+    /*pub async fn find_all(&mut self, id: &'static str) -> Result<ElementList> {
         Ok(ElementList(
             self.page.find_elements(format!("#{id}")).await?,
         ))
-    }
+    }*/
 
-    #[instrument(skip(self))]
     pub async fn goto_url(&mut self, url: &str) -> Result<()> {
         self.page
             .goto(
@@ -470,7 +469,7 @@ impl AppWorld {
         self.screenshot().await?;
         Ok(())
     }
-    #[instrument(skip(self))]
+
     pub async fn goto_path(&mut self, path: &str) -> Result<()> {
         let url = format!("{}{}", HOST, path);
         self.page
@@ -516,9 +515,10 @@ impl AppWorld {
             let result = self.page.find_xpath(&selector).await;
             if result.is_err() && count < 4 {
                 count += 1;
-                tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+                crate::fixtures::wait().await;
             } else {
-                return Ok(result?);
+                let result = result?;
+                return Ok(result);
             }
         }
     }
@@ -539,9 +539,10 @@ impl AppWorld {
     }
 }
 
+
+/*
 #[derive(Debug)]
 pub struct ElementList(Vec<Element>);
-/*
 impl ElementList {
     /// iterates over elements, finds first element whose text (as rendered) contains text given as function's argument.
     pub async fn find_by_text(&self,text:&'static str) -> Result<Element> {

@@ -1,6 +1,6 @@
 use super::*;
 
-#[tracing::instrument(ret)]
+#[tracing::instrument]
 #[server]
 pub async fn logout() -> Result<(), ServerFnError> {
     use ory_kratos_client::models::logout_flow::LogoutFlow;
@@ -29,14 +29,12 @@ pub async fn logout() -> Result<(), ServerFnError> {
         )
         .send()
         .await?;
-    tracing::debug!("STATUS: {}", resp.status());
     let status = resp.status();
     if status == StatusCode::NO_CONTENT || status == StatusCode::OK {
         let LogoutFlow {
             logout_token,
             logout_url,
         } = resp.json::<LogoutFlow>().await?;
-        tracing::debug!("logout url : {logout_url}");
         let _resp = client
             .get(logout_url)
             .query(&[("token", logout_token), ("return_to", "/".to_string())])

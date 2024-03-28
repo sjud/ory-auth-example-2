@@ -8,7 +8,7 @@ use leptos_router::*;
 
 pub mod auth;
 #[cfg(feature = "ssr")]
-pub mod business_logic;
+pub mod database_calls;
 pub mod error_template;
 use auth::*;
 pub mod posts;
@@ -61,7 +61,8 @@ fn HomePage() -> impl IntoView {
             <LogoutButton/>
         </div>
         <div>
-            <button on:click=move|_|clear_cookies.dispatch(ClearCookies{})>Clear cookies </button>
+            <button id=ids::CLEAR_COOKIES_BUTTON_ID
+            on:click=move|_|clear_cookies.dispatch(ClearCookies{})>Clear cookies </button>
         </div>
         <div>
             <HasSession/>
@@ -98,7 +99,8 @@ pub async fn clear_cookies_inner() -> Result<(), ServerFnError> {
     Ok(())
 }
 
-#[tracing::instrument]
+#[tracing::instrument(ret)]
+
 #[server]
 pub async fn clear_cookies() -> Result<(), ServerFnError> {
     clear_cookies_inner().await?;

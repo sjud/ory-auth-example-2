@@ -23,3 +23,8 @@ key.pem
 cert.pem
 rootCA.pem
 
+app.db
+app.db-shm
+app.db-wal
+.DS_Store
+*/.DS_Stre
