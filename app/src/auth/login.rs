@@ -80,11 +80,10 @@ impl IntoView for LoginResponse {
 #[tracing::instrument]
 #[server]
 pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, ServerFnError> {
-    use http::StatusCode;
+    use reqwest::StatusCode;
     use ory_kratos_client::models::error_browser_location_change_required::ErrorBrowserLocationChangeRequired;
     use ory_kratos_client::models::generic_error::GenericError;
 
-    let _pool = leptos_axum::extract::<axum::Extension<sqlx::SqlitePool>>().await?;
 
     let mut body = body;
     let action = body
@@ -125,20 +124,20 @@ pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, Serve
             axum::http::HeaderValue::from_str(value.to_str()?)?,
         );
     }
-    if resp.status().as_u16() == StatusCode::BAD_REQUEST.as_u16() {
+    if resp.status() == StatusCode::BAD_REQUEST {
         Ok(LoginResponse::Flow(resp.json::<ViewableLoginFlow>().await?))
-    } else if resp.status().as_u16() == StatusCode::OK.as_u16() {
+    } else if resp.status() == StatusCode::OK {
         // ory_kratos_session cookie set above.
         Ok(LoginResponse::Success)
-    } else if resp.status().as_u16() == StatusCode::GONE.as_u16() {
+    } else if resp.status() == StatusCode::GONE {
         let err = resp.json::<GenericError>().await?;
         let err = format!("{:#?}", err);
         Err(ServerFnError::new(err))
-    } else if resp.status().as_u16() == StatusCode::UNPROCESSABLE_ENTITY.as_u16() {
+    } else if resp.status() == StatusCode::UNPROCESSABLE_ENTITY {
         let err = resp.json::<ErrorBrowserLocationChangeRequired>().await?;
         let err = format!("{:#?}", err);
         Err(ServerFnError::new(err))
-    } else if resp.status().as_u16() == StatusCode::TEMPORARY_REDIRECT.as_u16() {
+    } else if resp.status() == StatusCode::TEMPORARY_REDIRECT {
         let text = format!("{:#?}", resp);
         Err(ServerFnError::new(text))
     } else {

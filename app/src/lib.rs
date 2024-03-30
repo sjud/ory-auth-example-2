@@ -15,6 +15,7 @@ pub mod posts;
 pub use posts::*;
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct IsLoggedIn(RwSignal<bool>);
+
 #[component]
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
@@ -39,6 +40,8 @@ pub fn App() -> impl IntoView {
                     <Route path=ids::VERIFICATION_ROUTE view=VerificationPage/>
                     <Route path=ids::LOGIN_ROUTE view=LoginPage/>
                     <Route path=ids::KRATOS_ERROR_ROUTE view=KratosErrorPage/>
+                    <Route path=ids::RECOVERY_ROUTE view=RecoveryPage/>
+                    <Route path=ids::SETTINGS_ROUTE view=SettingsPage/>
                 </Routes>
             </main>
         </Router>
@@ -52,10 +55,10 @@ fn HomePage() -> impl IntoView {
     view! {
         <h1>"Welcome to Leptos!"</h1>
         <div>
-            <a href="/register" id=ids::REGISTER_BUTTON_ID>Register</a>
+            <a href=ids::REGISTER_ROUTE id=ids::REGISTER_BUTTON_ID>Register</a>
         </div>
         <div>
-            <a href="/login" id=ids::LOGIN_BUTTON_ID>"Login"</a>
+            <a href=ids::LOGIN_ROUTE id=ids::LOGIN_BUTTON_ID>"Login"</a>
         </div>
         <div>
             <LogoutButton/>
@@ -69,6 +72,9 @@ fn HomePage() -> impl IntoView {
         </div>
         <div>
             <PostPage/>
+        </div>
+        <div>
+            <a href=ids::RECOVERY_ROUTE id=ids::RECOVER_EMAIL_BUTTON_ID>"Recovery Email"</a>
         </div>
     }
 }

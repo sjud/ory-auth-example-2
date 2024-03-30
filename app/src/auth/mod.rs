@@ -18,3 +18,7 @@ pub mod kratos_error;
 pub use kratos_error::KratosErrorPage;
 pub mod logout;
 pub use logout::LogoutButton;
+pub mod recovery;
+pub use recovery::RecoveryPage;
+pub mod settings;
+pub use settings::SettingsPage;

@@ -67,7 +67,7 @@ pub async fn fill_form_fields_with_credentials(world: &mut AppWorld) -> Result<(
         ));
     world.clipboard.insert("email", email);
     world
-        .set_field(ids::PASSWORD_INPUT_ID, "SuPeRsAfEpAsSwOrD1234!")
+        .set_field(ids::PASSWORD_INPUT_ID, ids::PASSWORD)
         .await
         .expect(&format!(
             "To find element with id {} BUT ERROR : ",
@@ -91,7 +91,7 @@ pub async fn fill_form_fields_with_other_credentials(world: &mut AppWorld) -> Re
         ));
     world.clipboard.insert("other_email", email);
     world
-        .set_field(ids::PASSWORD_INPUT_ID, "SuPeRsAfEpAsSwOrD1234!")
+        .set_field(ids::PASSWORD_INPUT_ID, ids::PASSWORD)
         .await
         .expect(&format!(
             "To find element with id {} BUT ERROR : ",
@@ -115,7 +115,7 @@ pub async fn fill_form_fields_with_previous_other_credentials(world: &mut AppWor
         .await
         .expect("set email field");
     world
-        .set_field(ids::PASSWORD_INPUT_ID, "SuPeRsAfEpAsSwOrD1234!")
+        .set_field(ids::PASSWORD_INPUT_ID, ids::PASSWORD)
         .await
         .expect("set password field");
     world.submit().await?;
@@ -139,7 +139,7 @@ pub async fn fill_form_fields_with_previous_credentials(world: &mut AppWorld) ->
         .await
         .expect("set email field");
     world
-        .set_field(ids::PASSWORD_INPUT_ID, "SuPeRsAfEpAsSwOrD1234!")
+        .set_field(ids::PASSWORD_INPUT_ID, ids::PASSWORD)
         .await
         .expect("set password field");
     world.submit().await?;
@@ -419,3 +419,107 @@ pub async fn i_clear_cookies(world:&mut AppWorld) -> Result<()> {
     world.page.delete_cookies(cookies).await?;
     Ok(())
 }
+
+#[given("I click recover email")]
+pub async fn click_recover_email(world:&mut AppWorld) -> Result<()> {
+    world.click(ids::RECOVER_EMAIL_BUTTON_ID).await?;
+    wait().await;
+    Ok(())
+}
+#[given("I submit valid recovery email")]
+pub async fn submit_valid_recovery_email(world:&mut AppWorld) -> Result<()> {
+    let email = world.clipboard.get("email").cloned()
+        .ok_or(anyhow!("Expecting email in clipboard if recovering email."))?;
+    world
+        .set_field(ids::EMAIL_INPUT_ID, &email)
+        .await
+        .expect("set email field");
+    world.submit().await?;
+    world.errors().await?;
+    Ok(())
+}
+#[given("I check my email for recovery link and code")]
+pub async fn check_email_for_recovery_link_and_code(world: &mut AppWorld) -> Result<()> {
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    // we've stored the email with the id
+    // so we get the id with our email from our clipboard
+    let email = world
+        .clipboard
+        .get("email")
+        .ok_or(anyhow!("email not found in clipboard"))?;
+    let id = EMAIL_ID_MAP
+        .read()
+        .await
+        .get(email)
+        .ok_or(anyhow!("{email} not found in EMAIL_ID_MAP"))?
+        .clone();
+    // then we use the id to get the message from mailcrab
+    let body = reqwest::get(format!("http://127.0.0.1:1080/api/message/{}/body", id))
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    let code = super::extract_code(&body)?;
+    world.clipboard.insert("recovery_code", code);
+    Ok(())
+}
+
+#[when("I copy the code onto the recovery link page")]
+pub async fn copy_code_onto_recovery_page(world: &mut AppWorld) -> Result<()> {
+    // we should figure out how to be on the right page, will this just work?
+
+    let code = world
+        .clipboard
+        .get("recovery_code")
+        .ok_or(anyhow!("link not found in clipboard"))?
+        .clone();
+    world
+        .set_field(ids::VERFICATION_CODE_ID, code)
+        .await
+        .expect(&format!("Can't find {}", ids::VERFICATION_CODE_ID));
+    world.submit().await?;
+    wait().await;
+    Ok(())
+}
+
+#[then("I am on the settings page")]
+pub async fn im_on_settings_page(world:&mut AppWorld) -> Result<()> {
+    wait().await;
+    world.url_contains("/settings").await?;
+    Ok(())
+}
+
+#[given("I enter a new recovery password")]
+pub async fn i_enter_a_new_recovery_password(world:&mut AppWorld) -> Result<()> {
+    world
+        .set_field(ids::PASSWORD_INPUT_ID, ids::RECOVERY_PASSWORD)
+        .await
+        .expect("set password field");
+    world.submit().await?;
+    wait().await;
+    Ok(())
+}
+
+#[given("I re-enter valid recovery credentials")]
+pub async fn fill_form_fields_with_recovery_credentials(world: &mut AppWorld) -> Result<()> {
+    let email = world
+        .clipboard
+        .get("email")
+        .cloned()
+        .ok_or(anyhow!("Can't find credentials in clipboard"))?;
+    world
+        .set_field(ids::EMAIL_INPUT_ID, &email)
+        .await
+        .expect("set email field");
+    world
+        .set_field(ids::PASSWORD_INPUT_ID, ids::RECOVERY_PASSWORD)
+        .await
+        .expect("set password field");
+    world.submit().await?;
+    world.errors().await?;
+    Ok(())
+}
+
+
+        

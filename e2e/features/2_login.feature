@@ -6,7 +6,7 @@ Feature: Login
     So that I can get access to authorized content.
 
 
-    Scenario: Register, verify and log in.
+    Scenario:login
         Given I am on the registration page
         And I see the registration form
         And I enter valid credentials
@@ -14,6 +14,6 @@ Feature: Login
         And I copy the code onto the verification link page
         When I click login
         And I see the login form
-        And I enter valid credentials
+        And I re-enter valid credentials
         Then I am on the homepage
         And I am logged in

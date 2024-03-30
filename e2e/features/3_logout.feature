@@ -6,7 +6,7 @@ Feature: Logout
     So that I can test to see if login after registering works.
 
     
-    Scenario: Logout
+    Scenario:logout
         Given I am on the registration page
         And I see the registration form
         And I enter valid credentials

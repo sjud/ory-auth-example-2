@@ -503,6 +503,7 @@ impl AppWorld {
         self.find(id).await?.click().await?;
         Ok(())
     }
+    #[tracing::instrument(err)]
     pub async fn submit(&mut self) -> Result<()> {
         self.screenshot().await?;
         self.find_submit().await?.click().await?;
@@ -521,6 +522,20 @@ impl AppWorld {
                 return Ok(result);
             }
         }
+    }
+    pub async fn url_contains(&self,s:&'static str) -> Result<()> {
+        if let Some(current) = self.page.url().await? {
+            if !current.contains(s) {
+                return Err(anyhow!(
+                    "{current} does not contains {s}"
+                ));
+            }
+        } else {
+            return Err(anyhow!(
+                "NO CURRENT URL FOUND"
+            ));
+        }
+        Ok(())
     }
     pub async fn verify_route(&self, path: &'static str) -> Result<()> {
         let url = format!("{}{}", HOST, path);

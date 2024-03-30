@@ -11,7 +11,7 @@ pub mod fileserv;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::new("debug,reqwest=error,sqlx=error,hyper=error,h2=error"))
+        .with_env_filter(EnvFilter::new("debug,tower_http=trace,rustls=error,cookie_store=error,reqwest=error,sqlx=error,hyper=error,h2=error"))
         .pretty()
         .init();
      
@@ -55,6 +55,7 @@ async fn main() {
         .leptos_routes(&leptos_options, routes, App)
         .fallback(file_and_error_handler)
         .layer(axum::Extension(pool))
+        .layer(tower_http::trace::TraceLayer::new_for_http())
         .with_state(leptos_options);
 
     // run our app with hyper

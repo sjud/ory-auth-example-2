@@ -1,6 +1,6 @@
 @test
 Feature: Test
 
-    Scenario: Pass, test, pass!
+    Scenario:pass_test_pass
         Given I pass
   

@@ -40,6 +40,7 @@ pub async fn logout() -> Result<(), ServerFnError> {
             .query(&[("token", logout_token), ("return_to", "/".to_string())])
             .send()
             .await?;
+        // set cookies to clear on the client.
         crate::clear_cookies_inner().await?;
         Ok(())
     } else {
