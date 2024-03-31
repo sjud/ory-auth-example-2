@@ -2,7 +2,7 @@ pub mod steps;
 use anyhow::{anyhow, Result};
 
 pub async fn wait() {
-    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(75)).await;
 }
 
 use regex::Regex;

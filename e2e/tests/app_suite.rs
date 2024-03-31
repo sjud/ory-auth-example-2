@@ -102,7 +102,7 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
         while let Some(msg) = socket.next().await {
-            if let tokio_tungstenite::tungstenite::Message::Text(text) = msg.unwrap() {
+            if let Ok(tokio_tungstenite::tungstenite::Message::Text(text)) = msg {
                 let Email { id, to } = serde_json::from_str::<Email>(&text).unwrap();
                 let email = to[0].email.clone();
                 EMAIL_ID_MAP.write().await.insert(email, id.to_string());
@@ -152,19 +152,26 @@ async fn main() -> Result<()> {
 
                 tokio::task::spawn(async move {
                     while let Some(event) = log_events.next().await {
-                        let EventEntryAdded { entry } =
-                            Arc::<EventEntryAdded>::try_unwrap(event).unwrap();
-                        console_logs.write().await.push(format!(" {entry:#?} "));
+                        if let Some(EventEntryAdded { entry }) = 
+                        Arc::<EventEntryAdded>::into_inner(event) {
+                            console_logs.write().await.push(format!(" {entry:#?} "));
+                        } else {
+                            tracing::error!("tried to into inner but none")
+                        }
                     }
                 });
 
                 tokio::task::spawn(async move {
                     while let Some(event) = runtime_events.next().await {
-                        let event = Arc::<EventConsoleApiCalled>::try_unwrap(event).unwrap();
-                        console_logs_2
+                        if let Some(event) =Arc::<EventConsoleApiCalled>::into_inner(event) {
+                            console_logs_2
                             .write()
                             .await
                             .push(format!(" CONSOLE_LOG: {:#?}", event.args));
+                        } else {
+                            tracing::error!("tried to into inner but none")
+                        }
+                       
                     }
                 });
 
@@ -189,15 +196,19 @@ async fn main() -> Result<()> {
                                         .await
                                         .unwrap_or_default()
                                         .iter()
-                                        .map(|cookie| format!("name={}\n value={}", cookie.name,cookie.value))
+                                        .map(|cookie| {
+                                            format!("name={}\n value={}", cookie.name, cookie.value)
+                                        })
                                         .collect::<Vec<String>>()
                                         .join("\n");
-                                    req_resp
-                                        .write()
-                                        .await
-                                        .get_mut(&req_id)
-                                        .unwrap()
-                                        .cookies_before_request = cookies;
+                                    if let Some(thing) = req_resp
+                                    .write()
+                                    .await
+                                    .get_mut(&req_id) {
+                                        thing.cookies_before_request = cookies;
+
+                                    }
+                                    
                                 }
                                 CookieEnum::AfterResp(req_id) => {
                                     let cookies = page
@@ -205,16 +216,18 @@ async fn main() -> Result<()> {
                                         .await
                                         .unwrap_or_default()
                                         .iter()
-                                        .map(|cookie| format!("name={}\n value={}", cookie.name,cookie.value))
+                                        .map(|cookie| {
+                                            format!("name={}\n value={}", cookie.name, cookie.value)
+                                        })
                                         .collect::<Vec<String>>()
                                         .join("\n");
-                                    req_resp
-                                        .write()
-                                        .await
-                                        .get_mut(&req_id)
-                                        .unwrap()
-                                        .cookies_after_response = cookies;
-                                }
+                                    if let Some(thing) = req_resp
+                                    .write()
+                                    .await
+                                    .get_mut(&req_id) {
+                                        thing.cookies_after_response = cookies;
+                                    }
+                                   }
                             }
                         } else {
                             break;
@@ -225,55 +238,63 @@ async fn main() -> Result<()> {
                 let req_resp = world.req_resp.clone();
                 tokio::task::spawn(async move {
                     while let Some(event) = req_events.next().await {
-                        let event: EventRequestWillBeSent =
-                            Arc::<EventRequestWillBeSent>::try_unwrap(event).unwrap();
-                        if event.request.url.contains("/pkg/") {
-                            continue;
+                        if let Some(event) = Arc::<EventRequestWillBeSent>::into_inner(event) {
+                            if event.request.url.contains("/pkg/") {
+                                continue;
+                            }
+                            let req_id = event.request_id.inner().clone();
+                            req_resp.write().await.insert(
+                                req_id.clone(),
+                                RequestPair {
+                                    req: Some(event.request),
+                                    redirect_resp: event.redirect_response,
+                                    resp: None,
+                                    cookies_before_request: "".to_string(),
+                                    cookies_after_response: "".to_string(),
+                                    ts: std::time::Instant::now(),
+                                },
+                            );
+                            if let Err(msg) = tx_c.try_send(Some(CookieEnum::BeforeReq(req_id.clone()))) {
+                                tracing::error!(" oopsies on the {msg:#?}");
+                            }
+                        } else {
+                            tracing::error!("into inner err")
                         }
-                        let req_id = event.request_id.inner().clone();
-                        req_resp.write().await.insert(
-                            req_id.clone(),
-                            RequestPair {
-                                req: Some(event.request),
-                                redirect_resp: event.redirect_response,
-                                resp: None,
-                                cookies_before_request: "".to_string(),
-                                cookies_after_response: "".to_string(),
-                                ts: std::time::Instant::now(),
-                            },
-                        );
-                        tx_c.try_send(Some(CookieEnum::BeforeReq(req_id.clone())))
-                            .unwrap();
                     }
                 });
 
                 let req_resp = world.req_resp.clone();
                 tokio::task::spawn(async move {
                     while let Some(event) = resp_events.next().await {
-                        let event: EventResponseReceived =
-                            Arc::<EventResponseReceived>::try_unwrap(event).unwrap();
-                        if event.response.url.contains("/pkg/") {
-                            continue;
-                        }
-                        let req_id = event.request_id.inner().clone();
-                        tx_c_2
-                            .try_send(Some(CookieEnum::AfterResp(req_id.clone())))
-                            .unwrap();
-                        if let Some(request_pair) = req_resp.write().await.get_mut(&req_id) {
-                            request_pair.resp = Some(event.response);
+                        if let Some(event) = Arc::<EventResponseReceived>::into_inner(event){
+                            if event.response.url.contains("/pkg/") {
+                                continue;
+                            }
+                            let req_id = event.request_id.inner().clone();
+                            if let Err(msg) = tx_c_2
+                                .try_send(Some(CookieEnum::AfterResp(req_id.clone()))) {
+                                tracing::error!("err sending {msg:#?}");
+                            }
+                            if let Some(request_pair) = req_resp.write().await.get_mut(&req_id) {
+                                request_pair.resp = Some(event.response);
+                            } else {
+                                req_resp.write().await.insert(
+                                    req_id.clone(),
+                                    RequestPair {
+                                        req: None,
+                                        redirect_resp: None,
+                                        resp: Some(event.response),
+                                        cookies_before_request: "No cookie?".to_string(),
+                                        cookies_after_response: "No cookie?".to_string(),
+                                        ts: std::time::Instant::now(),
+                                    },
+                                );
+                            }
                         } else {
-                            req_resp.write().await.insert(
-                                req_id.clone(),
-                                RequestPair {
-                                    req: None,
-                                    redirect_resp: None,
-                                    resp: Some(event.response),
-                                    cookies_before_request: "No cookie?".to_string(),
-                                    cookies_after_response: "No cookie?".to_string(),
-                                    ts: std::time::Instant::now(),
-                                },
-                            );
+                            tracing::error!(" uhh err here")
                         }
+                     
+                        
                     }
                 });
                 // We don't need to join on our join handles, they will run detached and clean up whenever.
@@ -285,37 +306,37 @@ async fn main() -> Result<()> {
 
                 let world = world.unwrap();
                 // screenshot the last step
-                let screenshot = world
-                    .page
-                    .screenshot(
-                        ScreenshotParams::builder()
-                            .capture_beyond_viewport(true)
-                            .full_page(true)
-                            .build(),
-                    )
-                    .await
-                    .unwrap();
-                world.screenshots.push(screenshot);
+                if let Ok(screenshot) = world
+                .page
+                .screenshot(
+                    ScreenshotParams::builder()
+                        .capture_beyond_viewport(true)
+                        .full_page(true)
+                        .build(),
+                )
+                .await {
+                    world.screenshots.push(screenshot);
+                }
 
                 if let cucumber::event::ScenarioFinished::StepFailed(_, _, _) = ev {
                     // close the cookie task.
-                    world
+                    if world
                         .cookie_sender
                         .as_mut()
                         .unwrap()
-                        .try_send(None)
-                        .unwrap();
+                        .try_send(None).is_err() {
+                            tracing::error!("can't close cookie sender");
+                        }
                     // print any applicable screenshots (just the last one of the failed step if there was none taken during the scenario)
                     for (i, screenshot) in world.screenshots.iter().enumerate() {
                         // i.e ./screenshots/login/1.png
-                        std::fs::write(
+                        _ =std::fs::write(
                             screenshot_directory_name.clone()
                                 + "/"
                                 + i.to_string().as_str()
                                 + ".png",
                             screenshot,
-                        )
-                        .unwrap();
+                        );
                     }
                     // print network
                     let mut network_output = world
@@ -334,18 +355,23 @@ async fn main() -> Result<()> {
                         .collect::<Vec<String>>()
                         .join("\n");
 
-                    std::fs::write("./network_output", network_output.as_bytes()).unwrap();
+                    _ = std::fs::write("./network_output", network_output.as_bytes());
 
                     let console_logs = world.console_logs.read().await.join("\n");
 
-                    std::fs::write("./console_logs", console_logs.as_bytes()).unwrap();
+                    _ =std::fs::write("./console_logs", console_logs.as_bytes());
 
                     // print html
-                    let html = world.page.content().await.unwrap();
-                    std::fs::write("./html", html.as_bytes()).unwrap();
+                    if let Ok(html) = world.page.content().await {
+                        _ = std::fs::write("./html", html.as_bytes());
+                    }
                 }
-                world.browser.close().await.unwrap();
-                world.browser.wait().await.unwrap();
+                if let Err(err) = world.browser.close().await {
+                    tracing::error!("{err:#?}");
+                }
+                if let Err(err) =  world.browser.wait().await {
+                    tracing::error!("{err:#?}");
+                }
             })
         })
         .run_and_exit("./features")
@@ -359,7 +385,7 @@ async fn build_browser() -> Result<Browser, Box<dyn std::error::Error>> {
         BrowserConfig::builder()
             //.enable_request_intercept()
             .disable_cache()
-            .request_timeout(Duration::from_secs(1))
+            .request_timeout(Duration::from_millis(250))
             //.with_head()
             //.arg("--remote-debugging-port=9222")
             .build()?,
@@ -417,26 +443,22 @@ impl AppWorld {
 
     pub async fn errors(&mut self) -> Result<()> {
         if let Ok(error) = self.find(ids::ERROR_ERROR_ID).await {
-            Err(anyhow!("{}", error.inner_text().await.unwrap().unwrap()))
+            Err(anyhow!("{}", error.inner_text().await?.unwrap_or(String::from("no error in inner template?"))))
         } else {
             Ok(())
         }
     }
 
     pub async fn find(&self, id: &'static str) -> Result<Element> {
-        let mut count = 0;
-        loop {
-            let result = self.page.find_element(format!("#{id}")).await;
-            if result.is_err() && count < 4 {
-                count += 1;
-                crate::fixtures::wait().await;
-            } else {
-                let result = result?;
-                return Ok(result);
+        for _ in 0..4 {
+            if let Ok(el) = self.page.find_element(format!("#{id}")).await {
+                return Ok(el);
             }
+            crate::fixtures::wait().await;
         }
+        Err(anyhow!("Can't find {id}"))
     }
-    
+
     pub async fn find_submit(&mut self) -> Result<Element> {
         let mut count = 0;
         loop {

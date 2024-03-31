@@ -86,7 +86,7 @@ pub async fn init_registration() -> Result<RegistrationResponse, ServerFnError> 
     Ok(RegistrationResponse::Flow(flow))
 }
 
-#[tracing::instrument]
+#[tracing::instrument(err)]
 #[server]
 pub async fn register(
     body: HashMap<String, String>,
@@ -113,20 +113,18 @@ pub async fn register(
         .ok_or(ServerFnError::new(
             "Expecting a csrf_token cookie to already be set if fetching a pre-existing flow",
         ))?;
-    let csrf_token = csrf_cookie.value();
+    
     let client = reqwest::ClientBuilder::new()
         .redirect(reqwest::redirect::Policy::none())
         .build()?;
     let resp = client
         .post(&action)
-        .header("x-csrf-token", csrf_token)
-        .header("content-type", "application/json")
-        //.header("accept","application/json")
+        //.header("content-type", "application/json")
         .header(
             "cookie",
             format!("{}={}", csrf_cookie.name(), csrf_cookie.value()),
         )
-        .body(serde_json::to_string(&body)?)
+        .json(&body)
         .send()
         .await?;
 

@@ -96,13 +96,11 @@ pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, Serve
         .ok_or(ServerFnError::new(
             "Expecting a csrf_token cookie to already be set if fetching a pre-existing flow",
         ))?;
-    let csrf_token = csrf_cookie.value();
     let client = reqwest::ClientBuilder::new()
         .redirect(reqwest::redirect::Policy::none())
         .build()?;
     let resp = client
         .post(&action)
-        .header("x-csrf-token", csrf_token)
         .header("content-type", "application/json")
         .header(
             "cookie",

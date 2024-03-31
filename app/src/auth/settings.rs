@@ -19,22 +19,38 @@ pub async fn init_settings_flow(
 ) -> Result<ViewableSettingsFlow, ServerFnError> {
     use reqwest::StatusCode;
     let cookie_jar = leptos_axum::extract::<axum_extra::extract::CookieJar>().await?;
-    let cookies = cookie_jar
+    let session_cookie = cookie_jar
         .iter()
-        .map(|cookie| format!("{}={}", cookie.name(), cookie.value()))
-        .collect::<Vec<String>>()
-        .join(";");
-
+        .filter_map(|cookie| {
+            if cookie.name().contains("ory_kratos_session") {
+                Some(format!("{}={}", cookie.name(), cookie.value()))
+            } else {
+                None
+            }
+        })
+        .next()
+        .ok_or(ServerFnError::new("Expecting session cookie"))?;
+    let csrf_token = cookie_jar
+    .iter()
+    .filter_map(|cookie| {
+        if cookie.name().contains("csrf_token") {
+            Some(format!("{}={}", cookie.name(), cookie.value()))
+        } else {
+            None
+        }
+    })
+    .next()
+    .ok_or(ServerFnError::new("Expecting csrf token cookie."))?;
     let client = reqwest::ClientBuilder::new()
         .cookie_store(true)
         .redirect(reqwest::redirect::Policy::none())
         .build()?;
 
     let opts = expect_context::<leptos_axum::ResponseOptions>();
-    
+
     opts.insert_header(
-            axum::http::HeaderName::from_static("cache-control"),
-            axum::http::HeaderValue::from_str("private, no-cache, no-store, must-revalidate")?,
+        axum::http::HeaderName::from_static("cache-control"),
+        axum::http::HeaderValue::from_str("private, no-cache, no-store, must-revalidate")?,
     );
     if let Some(flow_id) = flow_id {
         // use flow id to get pre-existing session flow
@@ -43,19 +59,21 @@ pub async fn init_settings_flow(
             .get("http://127.0.0.1:4433/self-service/settings/flows")
             .query(&[("id", flow_id)])
             .header("accept", "application/json")
-            .header("cookie", cookies)
+            .header("cookie", format!("{}; {}",csrf_token,session_cookie))
             .send()
             .await?;
-        if resp.headers().get_all("set-cookie").iter().count() == 0 {
-            tracing::error!("set-cookie is empty");
-        }
-        for value in resp.headers().get_all("set-cookie").iter() {
-            tracing::error!("init set cookie {value:#?}");
-            opts.append_header(
-                axum::http::HeaderName::from_static("set-cookie"),
-                axum::http::HeaderValue::from_str(value.to_str()?)?,
-            );
-        }
+
+        /*let cookie = resp
+            .headers()
+            .get("set-cookie")
+            .ok_or(ServerFnError::new("Expecting a cookie"))?
+            .to_str()?;
+        tracing::error!("set cookie init {cookie}");
+        let opts = expect_context::<leptos_axum::ResponseOptions>();
+        opts.append_header(
+            axum::http::HeaderName::from_static("set-cookie"),
+            axum::http::HeaderValue::from_str(cookie)?,
+        );*/
         // expecting 200:settingsflow ok 401,403,404,410:errorGeneric
         let status = resp.status();
         if status == StatusCode::OK {
@@ -67,7 +85,6 @@ pub async fn init_settings_flow(
             || status == StatusCode::GONE
         {
             // 401 should really redirect to login form...
-
 
             let err = resp
                 .json::<ory_kratos_client::models::ErrorGeneric>()
@@ -83,19 +100,22 @@ pub async fn init_settings_flow(
         let resp = client
             .get("http://127.0.0.1:4433/self-service/settings/browser")
             .header("accept", "application/json")
-            .header("cookie", cookies)
+            .header("cookie", format!("{}; {}",csrf_token,session_cookie))
             .send()
             .await?;
         if resp.headers().get_all("set-cookie").iter().count() == 0 {
-            tracing::error!("set-cookie is empty");
+            tracing::error!("init set set-cookie is empty");
         }
-        for value in resp.headers().get_all("set-cookie").iter() {
-            tracing::error!("init set cookie {value:#?}");
-            opts.append_header(
-                axum::http::HeaderName::from_static("set-cookie"),
-                axum::http::HeaderValue::from_str(value.to_str()?)?,
-            );
-        }
+        let cookie = resp
+            .headers()
+            .get("set-cookie")
+            .ok_or(ServerFnError::new("Expecting a cookie"))?
+            .to_str()?;
+        let opts = expect_context::<leptos_axum::ResponseOptions>();
+        opts.append_header(
+            axum::http::HeaderName::from_static("set-cookie"),
+            axum::http::HeaderValue::from_str(cookie)?,
+        );
         // expecting 200:settingsflow ok 400,401,403:errorGeneric
         let status = resp.status();
         if status == StatusCode::OK {
@@ -108,7 +128,7 @@ pub async fn init_settings_flow(
             let err = resp
                 .json::<ory_kratos_client::models::ErrorGeneric>()
                 .await?;
-            Err(ServerFnError::new("{err:#?}"))
+            Err(ServerFnError::new(format!("{err:#?}")))
         } else {
             tracing::error!("UHHANDLED STATUS : {status}");
             Err(ServerFnError::new("This is a helpful error message."))
@@ -126,15 +146,14 @@ pub async fn update_settings(
         ErrorBrowserLocationChangeRequired, ErrorGeneric, GenericError,
     };
     use reqwest::StatusCode;
-
+    let session = leptos_axum::extract::<extractors::ExtractSession>().await?.0;
+    tracing::error!("{session:#?}");
+    let mut body = body;
+    let action = body
+        .remove("action")
+        .ok_or(ServerFnError::new("Can't find action on body."))?;
+ 
     let cookie_jar = leptos_axum::extract::<axum_extra::extract::CookieJar>().await?;
-    let csrf_token = body.get("csrf_token").ok_or(ServerFnError::new("Expecting csrf token in form"))?;
-
-    let cookies = cookie_jar
-        .iter()
-        .map(|cookie| format!("{}={}", cookie.name(), cookie.value()))
-        .collect::<Vec<String>>()
-        .join(";");
     let csrf_cookie = cookie_jar
         .iter()
         .filter(|cookie| cookie.name().contains("csrf_token"))
@@ -142,41 +161,41 @@ pub async fn update_settings(
         .ok_or(ServerFnError::new(
             "Expecting a csrf_token cookie to already be set if fetching a pre-existing flow",
         ))?;
-
+    let ory_kratos_session = cookie_jar
+        .get("ory_kratos_session")
+        .ok_or(ServerFnError::new(
+            "No `ory_kratos_session` cookie found. Logout shouldn't be visible.",
+        ))?;
     let client = reqwest::ClientBuilder::new()
-        .cookie_store(true)
         .redirect(reqwest::redirect::Policy::none())
         .build()?;
-
-    let resp = client
-        .post("http://127.0.0.1:4433/self-service/settings/flows")
-        .query(&[("id", flow_id)])
+    let req = client
+        .post(&action)
         .header("accept", "application/json")
-        .header(
-            "cookie",
-            format!("{}={}", csrf_cookie.name(), csrf_token),
-        )        
-        .header("x-csrf-token", csrf_token)
+        .header("cookie",format!("{}={}",csrf_cookie.name(),csrf_cookie.value()))
+        .header("cookie",format!("{}={}",ory_kratos_session.name(),ory_kratos_session.value()))
         .json(&body)
-        .send()
-        .await?;
-    
-        let opts = expect_context::<leptos_axum::ResponseOptions>();
-    
-        opts.insert_header(
-                axum::http::HeaderName::from_static("cache-control"),
-                axum::http::HeaderValue::from_str("private, no-cache, no-store, must-revalidate")?,
+        .build()?;
+    tracing::error!("{req:#?}");
+
+    let resp = client.execute(req).await?;
+
+    let opts = expect_context::<leptos_axum::ResponseOptions>();
+
+    opts.insert_header(
+        axum::http::HeaderName::from_static("cache-control"),
+        axum::http::HeaderValue::from_str("private, no-cache, no-store, must-revalidate")?,
+    );
+    if resp.headers().get_all("set-cookie").iter().count() == 0 {
+        tracing::error!("update set-cookie is empty");
+    }
+    for value in resp.headers().get_all("set-cookie").iter() {
+        tracing::error!("update set cookie {value:#?}");
+        opts.append_header(
+            axum::http::HeaderName::from_static("set-cookie"),
+            axum::http::HeaderValue::from_str(value.to_str()?)?,
         );
-        if resp.headers().get_all("set-cookie").iter().count() == 0 {
-            tracing::error!("set-cookie is empty");
-        }
-        for value in resp.headers().get_all("set-cookie").iter() {
-            tracing::error!("init set cookie {value:#?}");
-            opts.append_header(
-                axum::http::HeaderName::from_static("set-cookie"),
-                axum::http::HeaderValue::from_str(value.to_str()?)?,
-            );
-        }
+    }
     // https://www.ory.sh/docs/reference/api#tag/frontend/operation/updateSettingsFlow
     // expecting  400,200:settingsflow ok 401,403,404,410:errorGeneric 422:ErrorBrowserLocationChangeRequired
     let status = resp.status();
@@ -187,8 +206,8 @@ pub async fn update_settings(
         || status == StatusCode::FORBIDDEN
         || status == StatusCode::NOT_FOUND
         || status == StatusCode::GONE
-    {   
-        /* 
+    {
+        /*
         let ErrorGeneric {
             error: box GenericError { id, message, .. },
         } = resp.json::<ErrorGeneric>().await?;
@@ -237,7 +256,6 @@ pub async fn update_settings(
         */
         let err = resp.json::<ErrorGeneric>().await?;
         let err = format!("{err:#?}");
-        tracing::error!(err);
         Err(ServerFnError::new(err))
     } else if status == StatusCode::UNPROCESSABLE_ENTITY {
         let body = resp.json::<ErrorBrowserLocationChangeRequired>().await?;

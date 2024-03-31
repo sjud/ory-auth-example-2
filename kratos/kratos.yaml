@@ -1,4 +1,4 @@
-version: v0.13.0
+version: v1.1.0
 
 dsn: memory
 
@@ -7,16 +7,18 @@ serve:
   public:
     base_url: http://127.0.0.1:4433/
     cors:
-      enabled: true
+      enabled: false
       allowed_headers:
         - Cookie
         - Content-Type
         - x-csrf-token
+        - accept
       exposed_headers:  
         - Cookie
         - Content-Type 
         - Set-Cookie
         - x-csrf-token
+        - accept
   admin:
     base_url: http://127.0.0.1:4434/
 
@@ -32,10 +34,6 @@ selfservice:
       config:
         issuer: Kratos
       enabled: true
-    lookup_secret:
-      enabled: true
-    link:
-      enabled: true
     code:
       enabled: true
 
@@ -46,7 +44,7 @@ selfservice:
     settings:
       ui_url: https://127.0.0.1:3000/settings
       privileged_session_max_age: 15m
-      required_aal: highest_available
+      required_aal: aal1
 
     recovery:
       enabled: true
@@ -80,8 +78,8 @@ selfservice:
             - hook: show_verification_ui
 
 log:
-  level: debug
-  format: text
+  level: trace
+  format: json
   leak_sensitive_values: true
 
 secrets:

@@ -4,6 +4,7 @@ use super::*;
 #[server]
 pub async fn logout() -> Result<(), ServerFnError> {
     use ory_kratos_client::models::logout_flow::LogoutFlow;
+    use ory_kratos_client::models::ErrorGeneric;
     use reqwest::StatusCode;
 
     let cookie_jar = leptos_axum::extract::<axum_extra::extract::CookieJar>().await?;
@@ -22,9 +23,7 @@ pub async fn logout() -> Result<(), ServerFnError> {
         .header(
             "cookie",
             format!(
-                "{}={}",
-                ory_kratos_session.name(),
-                ory_kratos_session.value()
+                "{}={}",ory_kratos_session.name(),ory_kratos_session.value()
             ),
         )
         .send()
@@ -35,11 +34,26 @@ pub async fn logout() -> Result<(), ServerFnError> {
             logout_token,
             logout_url,
         } = resp.json::<LogoutFlow>().await?;
-        let _resp = client
+        tracing::error!("token : {logout_token} url : {logout_url}");
+        let resp = client
             .get(logout_url)
             .query(&[("token", logout_token), ("return_to", "/".to_string())])
+            .header("accept","application/json")
+            .header(
+                "cookie",
+                format!(
+                    "{}={}",
+                    ory_kratos_session.name(),
+                    ory_kratos_session.value()
+                ),
+            )
             .send()
             .await?;
+        let status = resp.status();
+        if status != StatusCode::OK && status != StatusCode::NO_CONTENT{
+            let error = resp.json::<ErrorGeneric>().await?;
+            return Err(ServerFnError::new(format!("{error:#?}")));        
+        }
         // set cookies to clear on the client.
         crate::clear_cookies_inner().await?;
         Ok(())

@@ -80,7 +80,7 @@ pub async fn init_recovery_flow() -> Result<ViewableRecoveryFlow, ServerFnError>
     }
 }
 
-#[tracing::instrument]
+#[tracing::instrument(ret)]
 #[server]
 pub async fn process_recovery(
     body: HashMap<String, String>,

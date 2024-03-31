@@ -10,7 +10,7 @@ services:
 
   kratos:
     image: oryd/kratos:v1.1.0
-    command: serve --config /etc/config/kratos/kratos.yaml --watch-courier
+    command: serve --dev --config /etc/config/kratos/kratos.yaml --watch-courier
     volumes:
       - "./kratos:/etc/config/kratos"
     ports:

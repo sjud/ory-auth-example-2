@@ -350,6 +350,7 @@ pub async fn add_other_email_as_editor(world: &mut AppWorld) -> Result<()> {
 #[when("I logout")]
 pub async fn i_logout(world: &mut AppWorld) -> Result<()> {
     world.click(ids::LOGOUT_BUTTON_ID).await?;
+    world.errors().await?;
     Ok(())
 }
 #[when("I edit example post")]
