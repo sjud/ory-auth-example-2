@@ -255,10 +255,7 @@ pub async fn click_logout(world: &mut AppWorld) -> Result<()> {
 #[given("I am logged out")]
 #[then("I am logged out")]
 pub async fn check_ory_kratos_cookie_doesnt_exist(world: &mut AppWorld) -> Result<()> {
-    let cookies = world
-    .page
-    .get_cookies()
-    .await?;
+    let cookies = world.page.get_cookies().await?;
     if !cookies
         .iter()
         .filter(|c| c.name.contains("ory_kratos_session"))
@@ -303,7 +300,6 @@ pub async fn add_content_to_box(world: &mut AppWorld) -> Result<()> {
     Ok(())
 }
 
-
 #[given("I see example content posted")]
 #[then("I see example content posted")]
 #[when("I see example content posted")]
@@ -321,11 +317,18 @@ pub async fn see_my_content_posted(world: &mut AppWorld) -> Result<()> {
 
 #[when("I see error")]
 #[then("I see error")]
-pub async fn see_auth_err(world: &mut AppWorld) -> Result<()> {
+pub async fn see_err(world: &mut AppWorld) -> Result<()> {
     wait().await;
-    if world.errors().await.is_ok(){
+    if world.errors().await.is_ok() {
         return Err(anyhow!("Expecting an error."));
     }
+    Ok(())
+}
+
+#[when("I don't see error")]
+#[then("I don't see error")]
+pub async fn dont_see_err(world: &mut AppWorld) -> Result<()> {
+    world.errors().await?;
     Ok(())
 }
 
@@ -344,7 +347,6 @@ pub async fn add_other_email_as_editor(world: &mut AppWorld) -> Result<()> {
     Ok(())
 }
 
-
 #[when("I logout")]
 pub async fn i_logout(world: &mut AppWorld) -> Result<()> {
     world.click(ids::LOGOUT_BUTTON_ID).await?;
@@ -362,7 +364,7 @@ pub async fn add_new_edit_content_to_previous(world: &mut AppWorld) -> Result<()
     Ok(())
 }
 #[then("I see my new content posted")]
-pub async fn new_content_boom_ba_da_boom(world:&mut AppWorld) -> Result<()> {
+pub async fn new_content_boom_ba_da_boom(world: &mut AppWorld) -> Result<()> {
     let content = world
         .clipboard
         .get("edit_content")
@@ -392,12 +394,14 @@ pub async fn i_click_show_post_list(world: &mut AppWorld) -> Result<()> {
 }
 
 #[given("I clear cookies")]
-pub async fn i_clear_cookies(world:&mut AppWorld) -> Result<()> {
-    let cookies = world.page.get_cookies().await?
+pub async fn i_clear_cookies(world: &mut AppWorld) -> Result<()> {
+    let cookies = world
+        .page
+        .get_cookies()
+        .await?
         .into_iter()
-        .map(|cookie|
-            DeleteCookiesParams::from_cookie(
-            &CookieParam {
+        .map(|cookie| {
+            DeleteCookiesParams::from_cookie(&CookieParam {
                 name: cookie.name,
                 value: cookie.value,
                 url: None, // Since there's no direct field for URL, it's set as None
@@ -414,21 +418,25 @@ pub async fn i_clear_cookies(world:&mut AppWorld) -> Result<()> {
                 source_port: Some(cookie.source_port),
                 partition_key: cookie.partition_key,
                 // Note: `partition_key_opaque` is omitted since it doesn't have a direct mapping
-            }))
-            .collect();
+            })
+        })
+        .collect();
     world.page.delete_cookies(cookies).await?;
     Ok(())
 }
 
 #[given("I click recover email")]
-pub async fn click_recover_email(world:&mut AppWorld) -> Result<()> {
+pub async fn click_recover_email(world: &mut AppWorld) -> Result<()> {
     world.click(ids::RECOVER_EMAIL_BUTTON_ID).await?;
     wait().await;
     Ok(())
 }
 #[given("I submit valid recovery email")]
-pub async fn submit_valid_recovery_email(world:&mut AppWorld) -> Result<()> {
-    let email = world.clipboard.get("email").cloned()
+pub async fn submit_valid_recovery_email(world: &mut AppWorld) -> Result<()> {
+    let email = world
+        .clipboard
+        .get("email")
+        .cloned()
         .ok_or(anyhow!("Expecting email in clipboard if recovering email."))?;
     world
         .set_field(ids::EMAIL_INPUT_ID, &email)
@@ -484,25 +492,15 @@ pub async fn copy_code_onto_recovery_page(world: &mut AppWorld) -> Result<()> {
 }
 
 #[then("I am on the settings page")]
-pub async fn im_on_settings_page(world:&mut AppWorld) -> Result<()> {
+pub async fn im_on_settings_page(world: &mut AppWorld) -> Result<()> {
     wait().await;
     world.url_contains("/settings").await?;
     Ok(())
 }
 
-#[given("I enter a new recovery password")]
-pub async fn i_enter_a_new_recovery_password(world:&mut AppWorld) -> Result<()> {
-    world
-        .set_field(ids::PASSWORD_INPUT_ID, ids::RECOVERY_PASSWORD)
-        .await
-        .expect("set password field");
-    world.submit().await?;
-    wait().await;
-    Ok(())
-}
-
-#[given("I re-enter valid recovery credentials")]
-pub async fn fill_form_fields_with_recovery_credentials(world: &mut AppWorld) -> Result<()> {
+#[given("I enter recovery credentials")]
+#[when("I enter recovery credentials")]
+pub async fn i_enter_a_new_recovery_password(world: &mut AppWorld) -> Result<()> {
     let email = world
         .clipboard
         .get("email")
@@ -516,10 +514,16 @@ pub async fn fill_form_fields_with_recovery_credentials(world: &mut AppWorld) ->
         .set_field(ids::PASSWORD_INPUT_ID, ids::RECOVERY_PASSWORD)
         .await
         .expect("set password field");
+    let code = world
+        .clipboard
+        .get("recovery_code")
+        .ok_or(anyhow!("link not found in clipboard"))?
+        .clone();
+    world
+        .set_field(ids::VERFICATION_CODE_ID, code)
+        .await
+        .expect(&format!("Can't find {}", ids::VERFICATION_CODE_ID));
     world.submit().await?;
-    world.errors().await?;
+    wait().await;
     Ok(())
 }
-
-
-        

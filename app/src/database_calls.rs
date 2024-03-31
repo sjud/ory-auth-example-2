@@ -13,10 +13,14 @@ pub async fn create_user(
     email: &String,
 ) -> Result<(), Error> {
     let id = uuid::Uuid::new_v4().to_string();
-    sqlx::query!("INSERT INTO users (user_id,identity_id,email) VALUES (?,?,?)",
-        id,identity_id,email)
-        .execute(pool)
-        .await?;
+    sqlx::query!(
+        "INSERT INTO users (user_id,identity_id,email) VALUES (?,?,?)",
+        id,
+        identity_id,
+        email
+    )
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
@@ -31,15 +35,23 @@ pub async fn create_post(
     sqlx::query_as!(
         PostData,
         "INSERT INTO posts (post_id,user_id,content) VALUES (?,?,?) RETURNING *",
-        id,user_id,content
+        id,
+        user_id,
+        content
     )
     .fetch_one(pool)
     .await
 }
 #[tracing::instrument(ret)]
 
-pub async fn edit_post(pool: &SqlitePool, post_id: &String, content: &String,user_id:&String) -> Result<(), Error> {
-    sqlx::query!("
+pub async fn edit_post(
+    pool: &SqlitePool,
+    post_id: &String,
+    content: &String,
+    user_id: &String,
+) -> Result<(), Error> {
+    sqlx::query!(
+        "
     UPDATE posts
     SET content = ?
     WHERE post_id = ?
@@ -49,15 +61,19 @@ pub async fn edit_post(pool: &SqlitePool, post_id: &String, content: &String,use
         WHERE post_permissions.post_id = posts.post_id
         AND post_permissions.user_id = ?
         AND post_permissions.write = TRUE
-    )",content,post_id,user_id)
-        .execute(pool)
-        .await?;
+    )",
+        content,
+        post_id,
+        user_id
+    )
+    .execute(pool)
+    .await?;
     Ok(())
 }
 #[tracing::instrument(ret)]
 
 pub async fn delete_post(pool: &SqlitePool, post_id: &String) -> Result<(), Error> {
-    sqlx::query!("DELETE FROM posts where post_id = ?",post_id)
+    sqlx::query!("DELETE FROM posts where post_id = ?", post_id)
         .execute(pool)
         .await?;
     Ok(())
@@ -97,17 +113,19 @@ pub async fn read_user_by_email(pool: &SqlitePool, email: &String) -> Result<Use
 }
 #[tracing::instrument(ret)]
 
-pub async fn list_posts(pool: &SqlitePool,user_id:&String) -> Result<Vec<PostData>, Error> {
-    sqlx::query_as::<_, PostData>("
+pub async fn list_posts(pool: &SqlitePool, user_id: &String) -> Result<Vec<PostData>, Error> {
+    sqlx::query_as::<_, PostData>(
+        "
     SELECT posts.*
     FROM posts
     JOIN post_permissions ON posts.post_id = post_permissions.post_id 
         AND post_permissions.user_id = ?
     WHERE post_permissions.read = TRUE
-    ")
-        .bind(user_id)
-        .fetch_all(pool)
-        .await
+    ",
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await
 }
 
 #[tracing::instrument(ret)]
@@ -130,8 +148,13 @@ pub async fn update_post_permission(
         read = excluded.read,
         write = excluded.write,
         `delete` = excluded.`delete`;
-        ",post_id,user_id,read,write,delete
-        )
+        ",
+        post_id,
+        user_id,
+        read,
+        write,
+        delete
+    )
     .execute(pool)
     .await?;
 
@@ -148,8 +171,13 @@ pub async fn create_post_permissions(
         delete,
     }: PostPermission,
 ) -> Result<(), Error> {
-    sqlx::query!("INSERT INTO post_permissions (post_id,user_id,read,write,`delete`) VALUES (?,?,?,?,?)",
-       post_id,user_id,read,write,delete
+    sqlx::query!(
+        "INSERT INTO post_permissions (post_id,user_id,read,write,`delete`) VALUES (?,?,?,?,?)",
+        post_id,
+        user_id,
+        read,
+        write,
+        delete
     )
     .execute(pool)
     .await?;
@@ -174,11 +202,13 @@ impl PostPermission {
         if let Ok(row) = sqlx::query_as!(
             PostPermissionRow,
             "SELECT * FROM post_permissions WHERE post_id = ? AND user_id = ?",
-            post_id,user_id
+            post_id,
+            user_id
         )
         .fetch_one(pool)
-        .await {
-            Ok(Self::from(row))  
+        .await
+        {
+            Ok(Self::from(row))
         } else {
             Ok(Self::default())
         }
@@ -192,7 +222,7 @@ impl PostPermission {
         }
     }
 
-    pub fn is_full(&self) -> Result<(),ServerFnError> {
+    pub fn is_full(&self) -> Result<(), ServerFnError> {
         if &Self::new_full() != self {
             Err(ServerFnError::new("Unauthorized, not full permissions. "))
         } else {
@@ -240,7 +270,6 @@ pub struct PostPermissionRow {
     pub write: bool,
     pub delete: bool,
 }
-
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, FromRow)]
 pub struct UserRow {

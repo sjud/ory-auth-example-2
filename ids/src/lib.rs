@@ -13,8 +13,8 @@ pub static REGISTER_ROUTE: &'static str = "/register";
 pub static VERIFICATION_ROUTE: &'static str = "/verification";
 pub static LOGIN_ROUTE: &'static str = "/login";
 pub static KRATOS_ERROR_ROUTE: &'static str = "/kratos_error";
-pub static RECOVERY_ROUTE:&'static str = "/recovery";
-pub static SETTINGS_ROUTE:&'static str = "/settings";
+pub static RECOVERY_ROUTE: &'static str = "/recovery";
+pub static SETTINGS_ROUTE: &'static str = "/settings";
 
 pub static ERROR_ERROR_ID: &'static str = "error_template_id";
 pub static ERROR_COOKIES_ID: &'static str = "error_cookies_id";
@@ -37,6 +37,7 @@ pub fn match_name_to_id(name: String) -> &'static str {
         "email" => EMAIL_INPUT_ID,
         "password" => PASSWORD_INPUT_ID,
         "code" => VERFICATION_CODE_ID,
+        "totp_code" => VERFICATION_CODE_ID,
         _ => "",
     }
 }
@@ -51,11 +52,12 @@ pub static POST_EDIT_TEXT_AREA_ID: &'static str = "post_edit_text_area_id";
 pub static POST_EDIT_SUBMIT_ID: &'static str = "post_edit_submit_id";
 pub static POST_SHOW_LIST_BUTTON_ID: &'static str = "post_show_list_button_id";
 
-
-pub static CLEAR_COOKIES_BUTTON_ID:&'static str = "clear_cookies_button_id";
+pub static CLEAR_COOKIES_BUTTON_ID: &'static str = "clear_cookies_button_id";
 
 pub static RECOVERY_FORM_ID: &'static str = "recovery_form_id";
-pub static RECOVER_EMAIL_BUTTON_ID:&'static str = "recover_email_button_id";
+pub static RECOVER_EMAIL_BUTTON_ID: &'static str = "recover_email_button_id";
 
 pub static RECOVERY_PASSWORD: &'static str = "RECOVERY_SuPeRsAfEpAsSwOrD1234!";
 pub static PASSWORD: &'static str = "SuPeRsAfEpAsSwOrD1234!";
+
+pub static SETTINGS_FORM_ID: &'static str = "settings_form_id";

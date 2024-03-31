@@ -80,10 +80,9 @@ impl IntoView for LoginResponse {
 #[tracing::instrument]
 #[server]
 pub async fn login(body: HashMap<String, String>) -> Result<LoginResponse, ServerFnError> {
-    use reqwest::StatusCode;
     use ory_kratos_client::models::error_browser_location_change_required::ErrorBrowserLocationChangeRequired;
     use ory_kratos_client::models::generic_error::GenericError;
-
+    use reqwest::StatusCode;
 
     let mut body = body;
     let action = body

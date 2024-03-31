@@ -6,7 +6,7 @@ use super::*;
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct PostData {
     pub post_id: String,
-    pub user_id:String,
+    pub user_id: String,
     pub content: String,
 }
 impl IntoView for PostData {
@@ -29,7 +29,7 @@ pub async fn get_post_list() -> Result<Vec<PostData>, ServerFnError> {
         .0
         .user_id;
 
-    Ok(list_posts(&pool,&user_id).await?)
+    Ok(list_posts(&pool, &user_id).await?)
 }
 
 #[component]
@@ -42,7 +42,7 @@ pub fn PostPage() -> impl IntoView {
 
 #[component]
 pub fn PostsList() -> impl IntoView {
-    let list_posts = Action::<GetPostList,_>::server();
+    let list_posts = Action::<GetPostList, _>::server();
 
     view! {
         <button on:click=move|_|list_posts.dispatch(GetPostList{}) id=ids::POST_SHOW_LIST_BUTTON_ID>Show List</button>

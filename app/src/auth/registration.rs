@@ -6,7 +6,7 @@ use ory_kratos_client::models::UiText;
 use std::collections::HashMap;
 
 #[cfg(feature = "ssr")]
-use http::StatusCode;
+use reqwest::StatusCode;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewableRegistrationFlow(RegistrationFlow);
@@ -141,11 +141,11 @@ pub async fn register(
             axum::http::HeaderValue::from_str(value.to_str()?)?,
         );
     }
-    if resp.status().as_u16() == StatusCode::BAD_REQUEST.as_u16() {
+    if resp.status() == StatusCode::BAD_REQUEST {
         Ok(RegistrationResponse::Flow(
             resp.json::<ViewableRegistrationFlow>().await?,
         ))
-    } else if resp.status().as_u16() == StatusCode::OK.as_u16() {
+    } else if resp.status() == StatusCode::OK {
         // get identity, session, session token
         let SuccessfulNativeRegistration { identity, .. } =
             resp.json::<SuccessfulNativeRegistration>().await?;
@@ -153,15 +153,15 @@ pub async fn register(
         crate::database_calls::create_user(&pool, &identity_id, &email).await?;
         //discard all? what about session_token? I guess we aren't allowing logging in after registration without verification..
         Ok(RegistrationResponse::Success)
-    } else if resp.status().as_u16() == StatusCode::GONE.as_u16() {
+    } else if resp.status() == StatusCode::GONE {
         let err = resp.json::<GenericError>().await?;
         let err = format!("{:#?}", err);
         Err(ServerFnError::new(err))
-    } else if resp.status().as_u16() == StatusCode::UNPROCESSABLE_ENTITY.as_u16() {
+    } else if resp.status() == StatusCode::UNPROCESSABLE_ENTITY {
         let err = resp.json::<ErrorBrowserLocationChangeRequired>().await?;
         let err = format!("{:#?}", err);
         Err(ServerFnError::new(err))
-    } else if resp.status().as_u16() == StatusCode::TEMPORARY_REDIRECT.as_u16() {
+    } else if resp.status() == StatusCode::TEMPORARY_REDIRECT {
         let text = format!("{:#?}", resp);
         Err(ServerFnError::new(text))
     } else {

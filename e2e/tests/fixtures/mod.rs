@@ -2,7 +2,7 @@ pub mod steps;
 use anyhow::{anyhow, Result};
 
 pub async fn wait() {
-    tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
+    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 }
 
 use regex::Regex;
@@ -32,7 +32,7 @@ fn extract_code_and_link(text: &str) -> Result<(String, String)> {
 fn extract_code(text: &str) -> Result<String> {
     // Regex pattern for a six-digit number
     let number_regex = Regex::new(r"\b\d{6}\b").unwrap();
-    
+
     // Search for a six-digit number
     let number = number_regex
         .find(text)

@@ -3,7 +3,7 @@ use super::*;
 #[tracing::instrument(ret)]
 #[server]
 pub async fn post_post(content: String) -> Result<(), ServerFnError> {
-    use crate::database_calls::{PostPermission,create_post,create_post_permissions};
+    use crate::database_calls::{create_post, create_post_permissions, PostPermission};
 
     let pool = leptos_axum::extract::<axum::Extension<sqlx::SqlitePool>>()
         .await?
@@ -13,13 +13,7 @@ pub async fn post_post(content: String) -> Result<(), ServerFnError> {
         .0
         .user_id;
     let PostData { post_id, .. } = create_post(&pool, &user_id, &content).await?;
-    create_post_permissions(
-        &pool,
-        &post_id,
-        &user_id,
-        PostPermission::new_full(),
-    )
-    .await?;
+    create_post_permissions(&pool, &post_id, &user_id, PostPermission::new_full()).await?;
     Ok(())
 }
 

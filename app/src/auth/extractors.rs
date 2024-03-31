@@ -81,10 +81,9 @@ where
             .await
             .map_err(|err| format!("{err:#?}"))?
             .0;
-        let user =
-            crate::database_calls::read_user_by_identity_id(&pool, &identity_id)
-                .await
-                .map_err(|err| format!("{err:#?}"))?;
+        let user = crate::database_calls::read_user_by_identity_id(&pool, &identity_id)
+            .await
+            .map_err(|err| format!("{err:#?}"))?;
 
         Ok(Self(user))
     }

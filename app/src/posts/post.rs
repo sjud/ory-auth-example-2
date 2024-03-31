@@ -2,14 +2,12 @@ use self::posts_page::PostData;
 
 use super::*;
 
-
-
-
-
 // This is the post, contains all other functionality.
 #[component]
 pub fn Post(post: PostData) -> impl IntoView {
-    let PostData { post_id, content,.. } = post;
+    let PostData {
+        post_id, content, ..
+    } = post;
     view! {
         <div>{content}</div>
         <AddEditor post_id=post_id.clone()/>
@@ -21,40 +19,32 @@ pub fn Post(post: PostData) -> impl IntoView {
 #[tracing::instrument(ret)]
 #[server]
 pub async fn server_add_editor(post_id: String, email: String) -> Result<(), ServerFnError> {
-    use crate::database_calls::{PostPermission,read_user_by_email,update_post_permission};
+    use crate::database_calls::{read_user_by_email, update_post_permission, PostPermission};
 
     let pool: sqlx::Pool<sqlx::Sqlite> =
         leptos_axum::extract::<axum::Extension<sqlx::SqlitePool>>()
             .await?
             .0;
-    
+
     let user_id = leptos_axum::extract::<crate::auth::extractors::ExtractUserRow>()
         .await?
         .0
-        .user_id;    
-    
-    let caller_permissions = PostPermission::from_db_call(&pool,  &user_id,&post_id).await?;
-    
+        .user_id;
+
+    let caller_permissions = PostPermission::from_db_call(&pool, &user_id, &post_id).await?;
+
     caller_permissions.is_full()?;
 
     // get other id
-    let user_id = read_user_by_email(&pool, &email)
-        .await?
-        .user_id;
-    
+    let user_id = read_user_by_email(&pool, &email).await?.user_id;
+
     // make an idempotent update to the other users permissions;
     let mut permissions = PostPermission::from_db_call(&pool, &post_id, &user_id).await?;
     permissions.write = true;
     permissions.read = true;
-    
-    update_post_permission(
-        &pool,
-        &post_id,
-        &user_id,
-        permissions,
-    )
-    .await?;
-    
+
+    update_post_permission(&pool, &post_id, &user_id, permissions).await?;
+
     Ok(())
 }
 
@@ -77,7 +67,6 @@ pub fn AddEditor(post_id: String) -> impl IntoView {
     }
 }
 
-
 // Only the owner and editors can edit a post.
 #[tracing::instrument(ret)]
 #[server]
@@ -92,8 +81,8 @@ pub async fn server_edit_post(post_id: String, content: String) -> Result<(), Se
         .0
         .user_id;
 
-    crate::database_calls::edit_post(&pool, &post_id, &content,&user_id).await?;
-    
+    crate::database_calls::edit_post(&pool, &post_id, &content, &user_id).await?;
+
     Ok(())
 }
 

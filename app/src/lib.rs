@@ -76,6 +76,9 @@ fn HomePage() -> impl IntoView {
         <div>
             <a href=ids::RECOVERY_ROUTE id=ids::RECOVER_EMAIL_BUTTON_ID>"Recovery Email"</a>
         </div>
+        <div>
+            <a href=ids::SETTINGS_ROUTE>"Settings"</a>
+        </div>
     }
 }
 
@@ -106,7 +109,6 @@ pub async fn clear_cookies_inner() -> Result<(), ServerFnError> {
 }
 
 #[tracing::instrument(ret)]
-
 #[server]
 pub async fn clear_cookies() -> Result<(), ServerFnError> {
     clear_cookies_inner().await?;

@@ -189,7 +189,7 @@ async fn main() -> Result<()> {
                                         .await
                                         .unwrap_or_default()
                                         .iter()
-                                        .map(|cookie| format!("name={}", cookie.name,))
+                                        .map(|cookie| format!("name={}\n value={}", cookie.name,cookie.value))
                                         .collect::<Vec<String>>()
                                         .join("\n");
                                     req_resp
@@ -205,7 +205,7 @@ async fn main() -> Result<()> {
                                         .await
                                         .unwrap_or_default()
                                         .iter()
-                                        .map(|cookie| format!("name={}", cookie.name,))
+                                        .map(|cookie| format!("name={}\n value={}", cookie.name,cookie.value))
                                         .collect::<Vec<String>>()
                                         .join("\n");
                                     req_resp
@@ -415,7 +415,6 @@ impl AppWorld {
         })
     }
 
-    
     pub async fn errors(&mut self) -> Result<()> {
         if let Ok(error) = self.find(ids::ERROR_ERROR_ID).await {
             Err(anyhow!("{}", error.inner_text().await.unwrap().unwrap()))
@@ -430,21 +429,24 @@ impl AppWorld {
             let result = self.page.find_element(format!("#{id}")).await;
             if result.is_err() && count < 4 {
                 count += 1;
-                tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+                crate::fixtures::wait().await;
             } else {
-                return Ok(result?);
+                let result = result?;
+                return Ok(result);
             }
         }
     }
+    
     pub async fn find_submit(&mut self) -> Result<Element> {
         let mut count = 0;
         loop {
             let result = self.page.find_element(format!("input[type=submit]")).await;
             if result.is_err() && count < 4 {
                 count += 1;
-                tokio::time::sleep(std::time::Duration::from_millis(250)).await;
+                crate::fixtures::wait().await;
             } else {
-                return Ok(result?);
+                let result = result?;
+                return Ok(result);
             }
         }
     }
@@ -523,17 +525,13 @@ impl AppWorld {
             }
         }
     }
-    pub async fn url_contains(&self,s:&'static str) -> Result<()> {
+    pub async fn url_contains(&self, s: &'static str) -> Result<()> {
         if let Some(current) = self.page.url().await? {
             if !current.contains(s) {
-                return Err(anyhow!(
-                    "{current} does not contains {s}"
-                ));
+                return Err(anyhow!("{current} does not contains {s}"));
             }
         } else {
-            return Err(anyhow!(
-                "NO CURRENT URL FOUND"
-            ));
+            return Err(anyhow!("NO CURRENT URL FOUND"));
         }
         Ok(())
     }
@@ -553,7 +551,6 @@ impl AppWorld {
         Ok(())
     }
 }
-
 
 /*
 #[derive(Debug)]

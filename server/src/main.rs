@@ -14,24 +14,22 @@ async fn main() {
         .with_env_filter(EnvFilter::new("debug,tower_http=trace,rustls=error,cookie_store=error,reqwest=error,sqlx=error,hyper=error,h2=error"))
         .pretty()
         .init();
-     
+
     // we get a new db every restart.
-    
+
     _ = std::fs::remove_file("./app.db");
     _ = std::fs::remove_file("./app.db-shm");
     _ = std::fs::remove_file("./app.db-wal");
 
-
     std::process::Command::new("sqlx")
-        .args(["db","create","--database-url","sqlite:app.db"])
+        .args(["db", "create", "--database-url", "sqlite:app.db"])
         .status()
         .expect("sqlx to exist on user machine");
-    
+
     std::process::Command::new("sqlx")
-        .args(["migrate","run","--database-url","sqlite:app.db"])
+        .args(["migrate", "run", "--database-url", "sqlite:app.db"])
         .status()
         .expect("sqlite3 to exist on user machine");
-
 
     let pool = sqlx::SqlitePool::connect("sqlite:app.db").await.unwrap();
 
