@@ -385,7 +385,7 @@ async fn build_browser() -> Result<Browser, Box<dyn std::error::Error>> {
         BrowserConfig::builder()
             //.enable_request_intercept()
             .disable_cache()
-            .request_timeout(Duration::from_millis(250))
+            .request_timeout(Duration::from_secs(1))
             //.with_head()
             //.arg("--remote-debugging-port=9222")
             .build()?,
@@ -460,17 +460,13 @@ impl AppWorld {
     }
 
     pub async fn find_submit(&mut self) -> Result<Element> {
-        let mut count = 0;
-        loop {
-            let result = self.page.find_element(format!("input[type=submit]")).await;
-            if result.is_err() && count < 4 {
-                count += 1;
-                crate::fixtures::wait().await;
-            } else {
-                let result = result?;
-                return Ok(result);
+        for _ in 0..4 {
+            if let Ok(el) = self.page.find_element(format!("input[type=submit]")).await {
+                return Ok(el);
             }
+            crate::fixtures::wait().await;
         }
+        Err(anyhow!("Can't find input type=submit"))
     }
 
     /*pub async fn find_all(&mut self, id: &'static str) -> Result<ElementList> {

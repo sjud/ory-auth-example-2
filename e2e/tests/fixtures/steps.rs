@@ -124,6 +124,7 @@ pub async fn fill_form_fields_with_previous_other_credentials(world: &mut AppWor
 }
 
 #[when("I enter valid credentials")]
+#[when("I re-enter valid credentials")]
 #[given("I re-enter valid credentials")]
 pub async fn fill_form_fields_with_previous_credentials(world: &mut AppWorld) -> Result<()> {
     let email = world.clipboard.get("email").cloned();

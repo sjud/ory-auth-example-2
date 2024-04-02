@@ -36,6 +36,9 @@ selfservice:
       enabled: true
     code:
       enabled: true
+    oidc:
+      
+      
 
   flows:
     error:

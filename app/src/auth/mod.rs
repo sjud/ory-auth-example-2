@@ -1,6 +1,7 @@
 use super::error_template::ErrorTemplate;
 use leptos::*;
 use leptos_router::*;
+use leptos_meta::*;
 pub mod kratos_html;
 use kratos_html::kratos_html;
 pub mod registration;
